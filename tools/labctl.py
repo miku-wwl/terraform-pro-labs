@@ -1,0 +1,329 @@
+#!/usr/bin/env python3
+"""Minimal, portable lab runner for migrated Terraform practice labs."""
+
+from __future__ import annotations
+
+import argparse
+import json
+import shutil
+import subprocess
+import sys
+from datetime import datetime, timezone
+from pathlib import Path
+from typing import Any
+
+
+ROOT = Path(__file__).resolve().parents[1]
+LABS_DIR = ROOT / "labs"
+RESULTS_DIR = ROOT / ".labctl" / "results"
+
+REQUIRED_TOP_LEVEL = {
+    "schema_version": int,
+    "id": int,
+    "title": str,
+    "type": str,
+    "tier": str,
+    "difficulty": str,
+    "estimated_minutes": int,
+    "execution": dict,
+    "validation": dict,
+    "editable_paths": list,
+    "protected_paths": list,
+}
+
+REQUIRED_EXECUTION = {
+    "mode": str,
+    "terraform_version": str,
+    "requires_cloud_credentials": bool,
+    "creates_billable_resources": bool,
+    "backend": str,
+}
+
+REQUIRED_VALIDATION = {
+    "starter_expected_result": str,
+    "expected_failure_stage": str,
+    "expected_error_category": str,
+    "expected_failing_test": str,
+    "expected_failure_marker": str,
+    "solution_expected_result": str,
+    "commands": list,
+}
+
+
+class ManifestError(ValueError):
+    """Raised when a lab manifest does not satisfy the Phase 2 schema."""
+
+
+def lab_directories() -> list[Path]:
+    return sorted(path for path in LABS_DIR.glob("[0-9][0-9]-*") if path.is_dir())
+
+
+def resolve_lab(lab_id: str) -> Path:
+    normalized = lab_id.zfill(2)
+    matches = [path for path in lab_directories() if path.name.startswith(f"{normalized}-")]
+    if len(matches) != 1:
+        raise ManifestError(f"expected exactly one lab matching id {normalized}, found {len(matches)}")
+    return matches[0]
+
+
+def require_fields(value: dict[str, Any], fields: dict[str, type], context: str) -> None:
+    for name, expected_type in fields.items():
+        if name not in value:
+            raise ManifestError(f"{context}: missing required field '{name}'")
+        if not isinstance(value[name], expected_type):
+            raise ManifestError(
+                f"{context}.{name}: expected {expected_type.__name__}, "
+                f"got {type(value[name]).__name__}"
+            )
+
+
+def load_manifest(lab_dir: Path) -> dict[str, Any]:
+    manifest_path = lab_dir / "lab.yaml"
+    if not manifest_path.is_file():
+        raise ManifestError(f"{lab_dir.name}: lab.yaml is missing")
+
+    try:
+        manifest = json.loads(manifest_path.read_text(encoding="utf-8"))
+    except (OSError, json.JSONDecodeError) as exc:
+        raise ManifestError(f"{lab_dir.name}: lab.yaml must be JSON-compatible YAML: {exc}") from exc
+
+    if not isinstance(manifest, dict):
+        raise ManifestError(f"{lab_dir.name}: manifest root must be a mapping")
+
+    require_fields(manifest, REQUIRED_TOP_LEVEL, lab_dir.name)
+    require_fields(manifest["execution"], REQUIRED_EXECUTION, f"{lab_dir.name}.execution")
+    require_fields(manifest["validation"], REQUIRED_VALIDATION, f"{lab_dir.name}.validation")
+
+    directory_id = int(lab_dir.name[:2])
+    if manifest["schema_version"] != 1:
+        raise ManifestError(f"{lab_dir.name}: unsupported schema_version")
+    if manifest["id"] != directory_id:
+        raise ManifestError(f"{lab_dir.name}: manifest id does not match directory")
+    if manifest["validation"]["starter_expected_result"] != "fail":
+        raise ManifestError(f"{lab_dir.name}: starter_expected_result must be 'fail'")
+    if manifest["validation"]["solution_expected_result"] != "pass":
+        raise ManifestError(f"{lab_dir.name}: solution_expected_result must be 'pass'")
+    if not manifest["validation"]["commands"]:
+        raise ManifestError(f"{lab_dir.name}: validation.commands must not be empty")
+
+    stages: list[str] = []
+    for index, command in enumerate(manifest["validation"]["commands"]):
+        context = f"{lab_dir.name}.validation.commands[{index}]"
+        require_fields(command, {"name": str, "stage": str, "argv": list}, context)
+        if not command["argv"] or not all(isinstance(item, str) for item in command["argv"]):
+            raise ManifestError(f"{context}.argv must be a non-empty list of strings")
+        stages.append(command["stage"])
+
+    if manifest["validation"]["expected_failure_stage"] not in stages:
+        raise ManifestError(f"{lab_dir.name}: expected_failure_stage is not present in commands")
+
+    for field in ("editable_paths", "protected_paths"):
+        if not manifest[field] or not all(isinstance(item, str) for item in manifest[field]):
+            raise ManifestError(f"{lab_dir.name}.{field} must be a non-empty list of paths")
+        for relative in manifest[field]:
+            if Path(relative).is_absolute() or ".." in Path(relative).parts:
+                raise ManifestError(f"{lab_dir.name}.{field}: unsafe path '{relative}'")
+            if not (lab_dir / relative).exists():
+                raise ManifestError(f"{lab_dir.name}.{field}: path does not exist: {relative}")
+
+    return manifest
+
+
+def result_path(lab_id: int, mode: str) -> Path:
+    return RESULTS_DIR / f"{lab_id:02d}-{mode}.json"
+
+
+def write_result(lab_id: int, mode: str, outcome: str, command_name: str, returncode: int) -> None:
+    RESULTS_DIR.mkdir(parents=True, exist_ok=True)
+    payload = {
+        "lab_id": f"{lab_id:02d}",
+        "mode": mode,
+        "outcome": outcome,
+        "command": command_name,
+        "returncode": returncode,
+        "recorded_at": datetime.now(timezone.utc).isoformat(),
+    }
+    result_path(lab_id, mode).write_text(json.dumps(payload, indent=2) + "\n", encoding="utf-8")
+
+
+def generated_artifacts(lab_dir: Path) -> list[Path]:
+    starter = lab_dir / "starter"
+    candidates = [
+        lab_dir / ".terraform",
+        starter / ".terraform",
+        starter / "terraform.tfstate",
+        starter / "terraform.tfstate.backup",
+        starter / "terraform.tfstate.d",
+        starter / "crash.log",
+    ]
+    candidates.extend(starter.glob("*.tfplan"))
+    return [path for path in candidates if path.exists()]
+
+
+def display_relative(path: Path) -> str:
+    return path.relative_to(ROOT).as_posix()
+
+
+def command_list(_: argparse.Namespace) -> int:
+    invalid = False
+    for lab_dir in lab_directories():
+        manifest_path = lab_dir / "lab.yaml"
+        if not manifest_path.exists():
+            print(f"{lab_dir.name[:2]}  legacy      {lab_dir.name[3:]}")
+            continue
+        try:
+            manifest = load_manifest(lab_dir)
+        except ManifestError as exc:
+            invalid = True
+            print(f"{lab_dir.name[:2]}  INVALID     {exc}")
+            continue
+        print(f"{manifest['id']:02d}  migrated    {manifest['title']}")
+    return 1 if invalid else 0
+
+
+def command_status(args: argparse.Namespace) -> int:
+    try:
+        lab_dir = resolve_lab(args.lab_id)
+        manifest = load_manifest(lab_dir)
+    except ManifestError as exc:
+        print(f"ERROR: {exc}", file=sys.stderr)
+        return 1
+
+    artifacts = generated_artifacts(lab_dir)
+    print(f"Lab: {manifest['id']:02d} - {manifest['title']}")
+    print("Manifest: valid")
+    print(f"Working directory: {display_relative(lab_dir / 'starter')}")
+    print(f"Cloud credentials required: {str(manifest['execution']['requires_cloud_credentials']).lower()}")
+    print(f"Creates billable resources: {str(manifest['execution']['creates_billable_resources']).lower()}")
+    print(f"Generated artifacts: {len(artifacts)}")
+    for path in artifacts:
+        print(f"  - {display_relative(path)}")
+    for mode in ("starter", "solution"):
+        path = result_path(manifest["id"], mode)
+        if path.exists():
+            data = json.loads(path.read_text(encoding="utf-8"))
+            print(f"Last {mode} result: {data['outcome']} at {data['recorded_at']}")
+        else:
+            print(f"Last {mode} result: not recorded")
+    return 0
+
+
+def expanded_argv(argv: list[str]) -> list[str]:
+    return [sys.executable if value == "{python}" else value for value in argv]
+
+
+def command_check(args: argparse.Namespace) -> int:
+    try:
+        lab_dir = resolve_lab(args.lab_id)
+        manifest = load_manifest(lab_dir)
+    except ManifestError as exc:
+        print(f"ERROR: {exc}", file=sys.stderr)
+        return 1
+
+    validation = manifest["validation"]
+    expected_stage = validation["expected_failure_stage"]
+    marker = validation["expected_failure_marker"]
+
+    for command in validation["commands"]:
+        argv = expanded_argv(command["argv"])
+        print(f"==> {command['name']}: {' '.join(argv)}")
+        completed = subprocess.run(
+            argv,
+            cwd=lab_dir / "starter",
+            text=True,
+            stdout=subprocess.PIPE,
+            stderr=subprocess.STDOUT,
+            check=False,
+        )
+        if completed.stdout:
+            print(completed.stdout.rstrip())
+
+        if args.mode == "starter" and command["stage"] == expected_stage:
+            if completed.returncode != 0 and marker in completed.stdout:
+                print(f"PASS: observed expected starter failure at stage '{expected_stage}'.")
+                write_result(manifest["id"], args.mode, "expected_failure_observed", command["name"], completed.returncode)
+                return 0
+            outcome = "unexpected_failure" if completed.returncode else "unexpected_pass"
+            print(f"FAIL: starter gate {outcome} at stage '{expected_stage}'.", file=sys.stderr)
+            write_result(manifest["id"], args.mode, outcome, command["name"], completed.returncode)
+            return 1
+
+        if completed.returncode != 0:
+            print(f"FAIL: command '{command['name']}' exited {completed.returncode}.", file=sys.stderr)
+            write_result(manifest["id"], args.mode, "unexpected_failure", command["name"], completed.returncode)
+            return 1
+
+    if args.mode == "starter":
+        print(f"FAIL: expected failure stage '{expected_stage}' was not reached.", file=sys.stderr)
+        write_result(manifest["id"], args.mode, "unexpected_pass", "none", 0)
+        return 1
+
+    print("PASS: all canonical solution checks passed.")
+    write_result(manifest["id"], args.mode, "pass", "all", 0)
+    return 0
+
+
+def remove_path(path: Path) -> None:
+    if path.is_dir() and not path.is_symlink():
+        shutil.rmtree(path)
+    else:
+        path.unlink()
+
+
+def command_reset(args: argparse.Namespace) -> int:
+    try:
+        lab_dir = resolve_lab(args.lab_id)
+        manifest = load_manifest(lab_dir)
+    except ManifestError as exc:
+        print(f"ERROR: {exc}", file=sys.stderr)
+        return 1
+
+    removed: list[Path] = []
+    for path in generated_artifacts(lab_dir):
+        remove_path(path)
+        removed.append(path)
+    for mode in ("starter", "solution"):
+        path = result_path(manifest["id"], mode)
+        if path.exists():
+            path.unlink()
+            removed.append(path)
+
+    if removed:
+        for path in removed:
+            print(f"Removed {display_relative(path)}")
+    else:
+        print(f"Lab {manifest['id']:02d} is already clean.")
+    return 0
+
+
+def build_parser() -> argparse.ArgumentParser:
+    parser = argparse.ArgumentParser(description=__doc__)
+    subparsers = parser.add_subparsers(dest="command", required=True)
+
+    list_parser = subparsers.add_parser("list", help="list labs and manifest status")
+    list_parser.set_defaults(func=command_list)
+
+    status_parser = subparsers.add_parser("status", help="show one lab's status")
+    status_parser.add_argument("lab_id")
+    status_parser.set_defaults(func=command_status)
+
+    check_parser = subparsers.add_parser("check", help="run a starter or solution gate")
+    check_parser.add_argument("lab_id")
+    check_parser.add_argument("--mode", choices=("starter", "solution"), default="starter")
+    check_parser.set_defaults(func=command_check)
+
+    reset_parser = subparsers.add_parser("reset", help="remove lab-owned generated artifacts")
+    reset_parser.add_argument("lab_id")
+    reset_parser.set_defaults(func=command_reset)
+
+    return parser
+
+
+def main() -> int:
+    parser = build_parser()
+    args = parser.parse_args()
+    return args.func(args)
+
+
+if __name__ == "__main__":
+    raise SystemExit(main())

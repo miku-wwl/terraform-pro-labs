@@ -1,15 +1,12 @@
-provider "aws" {
-  region = "us-east-1"
-}
-
 variable "environment" {
   description = "Deployment environment."
   type        = string
   default     = "dev"
 
   validation {
-    condition     = contains(["dev", "stage", "prod"], var.environment)
-    error_message = "environment must be one of: dev, stage, prod."
+    # TODO: Reject unsupported environment names.
+    condition     = var.environment != ""
+    error_message = "environment is not supported."
   }
 }
 
@@ -23,11 +20,6 @@ variable "name_prefix" {
   description = "Name prefix for generated resources."
   type        = string
   default     = "tfpro"
-
-  validation {
-    condition     = length(var.name_prefix) >= 3
-    error_message = "name_prefix must be at least 3 characters long."
-  }
 }
 
 locals {
@@ -43,8 +35,9 @@ resource "terraform_data" "deployment" {
 
   lifecycle {
     precondition {
-      condition     = !(var.environment == "prod" && var.instance_type == "t3.micro")
-      error_message = "prod must not use t3.micro."
+      # TODO: Reject the unsafe production size combination.
+      condition     = var.instance_type != ""
+      error_message = "production instance type is unsafe."
     }
   }
 }
@@ -55,7 +48,8 @@ output "deployment_summary" {
 
 check "name_prefix_quality" {
   assert {
-    condition     = length(var.name_prefix) >= 5
-    error_message = "name_prefix should usually be at least 5 characters long for readability."
+    # TODO: Warn when the prefix does not meet the naming-quality rule.
+    condition     = var.name_prefix != ""
+    error_message = "name_prefix does not meet the readability guideline."
   }
 }
