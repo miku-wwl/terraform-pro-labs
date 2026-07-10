@@ -49,6 +49,11 @@ REQUIRED_VALIDATION = {
     "commands": list,
 }
 
+REQUIRED_STATE = {
+    "seed_argv": list,
+    "generated_paths": list,
+}
+
 
 class ManifestError(ValueError):
     """Raised when a lab manifest does not satisfy the Phase 2 schema."""
@@ -126,6 +131,26 @@ def load_manifest(lab_dir: Path) -> dict[str, Any]:
             if not (lab_dir / relative).exists():
                 raise ManifestError(f"{lab_dir.name}.{field}: path does not exist: {relative}")
 
+    if manifest["type"] == "state-refactor":
+        if "state" not in manifest or not isinstance(manifest["state"], dict):
+            raise ManifestError(f"{lab_dir.name}: state-refactor labs require a state mapping")
+        state = manifest["state"]
+        require_fields(state, REQUIRED_STATE, f"{lab_dir.name}.state")
+        if not state["seed_argv"] or not all(isinstance(item, str) for item in state["seed_argv"]):
+            raise ManifestError(f"{lab_dir.name}.state.seed_argv must be a non-empty list of strings")
+        if not state["generated_paths"] or not all(
+            isinstance(item, str) for item in state["generated_paths"]
+        ):
+            raise ManifestError(f"{lab_dir.name}.state.generated_paths must be a non-empty list of paths")
+        for relative in state["generated_paths"]:
+            relative_path = Path(relative)
+            if (
+                relative_path.is_absolute()
+                or ".." in relative_path.parts
+                or relative_path in (Path("."), Path(""))
+            ):
+                raise ManifestError(f"{lab_dir.name}.state.generated_paths: unsafe path '{relative}'")
+
     return manifest
 
 
@@ -146,7 +171,7 @@ def write_result(lab_id: int, mode: str, outcome: str, command_name: str, return
     result_path(lab_id, mode).write_text(json.dumps(payload, indent=2) + "\n", encoding="utf-8")
 
 
-def generated_artifacts(lab_dir: Path) -> list[Path]:
+def generated_artifacts(lab_dir: Path, manifest: dict[str, Any]) -> list[Path]:
     starter = lab_dir / "starter"
     candidates = [
         lab_dir / ".terraform",
@@ -156,8 +181,16 @@ def generated_artifacts(lab_dir: Path) -> list[Path]:
         starter / "terraform.tfstate.d",
         starter / "crash.log",
     ]
-    candidates.extend(starter.glob("*.tfplan"))
-    return [path for path in candidates if path.exists()]
+    candidates.extend(lab_dir.rglob(".terraform"))
+    candidates.extend(starter.rglob(".terraform.lock.hcl"))
+    candidates.extend(starter.rglob("terraform.tfstate"))
+    candidates.extend(starter.rglob("terraform.tfstate.backup"))
+    candidates.extend(starter.rglob("terraform.tfstate.d"))
+    candidates.extend(starter.rglob("*.tfplan"))
+    if manifest["type"] == "state-refactor":
+        candidates.extend(lab_dir / relative for relative in manifest["state"]["generated_paths"])
+    existing = {path for path in candidates if path.exists()}
+    return sorted(existing, key=lambda path: len(path.parts), reverse=True)
 
 
 def display_relative(path: Path) -> str:
@@ -189,7 +222,7 @@ def command_status(args: argparse.Namespace) -> int:
         print(f"ERROR: {exc}", file=sys.stderr)
         return 1
 
-    artifacts = generated_artifacts(lab_dir)
+    artifacts = generated_artifacts(lab_dir, manifest)
     print(f"Lab: {manifest['id']:02d} - {manifest['title']}")
     print("Manifest: valid")
     print(f"Working directory: {display_relative(lab_dir / 'starter')}")
@@ -263,6 +296,37 @@ def command_check(args: argparse.Namespace) -> int:
     return 0
 
 
+def command_seed(args: argparse.Namespace) -> int:
+    try:
+        lab_dir = resolve_lab(args.lab_id)
+        manifest = load_manifest(lab_dir)
+    except ManifestError as exc:
+        print(f"ERROR: {exc}", file=sys.stderr)
+        return 1
+
+    if manifest["type"] != "state-refactor":
+        print(f"ERROR: Lab {manifest['id']:02d} does not define a state seed workflow.", file=sys.stderr)
+        return 1
+
+    argv = expanded_argv(manifest["state"]["seed_argv"])
+    print(f"==> seed: {' '.join(argv)}")
+    completed = subprocess.run(
+        argv,
+        cwd=lab_dir,
+        text=True,
+        stdout=subprocess.PIPE,
+        stderr=subprocess.STDOUT,
+        check=False,
+    )
+    if completed.stdout:
+        print(completed.stdout.rstrip())
+    if completed.returncode != 0:
+        print(f"FAIL: seed command exited {completed.returncode}.", file=sys.stderr)
+        return completed.returncode
+    print(f"PASS: Lab {manifest['id']:02d} state seed completed.")
+    return 0
+
+
 def remove_path(path: Path) -> None:
     if path.is_dir() and not path.is_symlink():
         shutil.rmtree(path)
@@ -279,7 +343,7 @@ def command_reset(args: argparse.Namespace) -> int:
         return 1
 
     removed: list[Path] = []
-    for path in generated_artifacts(lab_dir):
+    for path in generated_artifacts(lab_dir, manifest):
         remove_path(path)
         removed.append(path)
     for mode in ("starter", "solution"):
@@ -311,6 +375,10 @@ def build_parser() -> argparse.ArgumentParser:
     check_parser.add_argument("lab_id")
     check_parser.add_argument("--mode", choices=("starter", "solution"), default="starter")
     check_parser.set_defaults(func=command_check)
+
+    seed_parser = subparsers.add_parser("seed", help="create isolated starting state for a state lab")
+    seed_parser.add_argument("lab_id")
+    seed_parser.set_defaults(func=command_seed)
 
     reset_parser = subparsers.add_parser("reset", help="remove lab-owned generated artifacts")
     reset_parser.add_argument("lab_id")

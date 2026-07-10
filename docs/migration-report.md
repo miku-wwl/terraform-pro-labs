@@ -121,3 +121,92 @@ python tools/labctl.py reset 07
 ```
 
 All six commands exited successfully. Both manifests were valid and both labs reported `requires_cloud_credentials: false` and `creates_billable_resources: false`. Lab 01 reproduced `EXPECTED_GUARD_MISSING`; Lab 07 reproduced `EXPECTED_GUARDS_INCOMPLETE`; each expected failure was classified as a passing starter gate. Both resets removed only lab-owned generated artifacts and result records. Lab 07 status correctly reported the existing test-module cache before its final reset.
+
+## Phase 3 — Lab 11 import, moved blocks, and refactor
+
+Migration date: 2026-07-10
+
+Working branch: `main`
+
+Scope: Lab 11, the minimum `labctl seed` and state-artifact support required by Lab 11, and corresponding documentation only. Labs 03, 19, and 26 were not modified.
+
+### Original defects
+
+Lab 11 was an exact copy of the legacy Lab 03 S3 placeholder. It assumed an existing bucket and AWS credentials but supplied no import block, module, moved block, bootstrap configuration, initial state, isolated state directory, behavioral test, reset, or no-op proof.
+
+### State-lab design
+
+The AWS configuration was replaced by HashiCorp `random_id`, a local logical provider with a real import implementation and no remote service or billable resource. The workflow is deliberately split so import and moved semantics are not attempted in the same configuration transition:
+
+1. `bootstrap/old-config` creates `random_id.legacy_record` in an isolated copied work directory.
+2. The seed verifier confirms that exact address, captures its Base64 URL import identifier, and removes the bootstrap state binding to hand the identity to the learner workflow.
+3. `starter/import-stage` must declaratively import the identity at `random_id.legacy_record`.
+4. `starter/refactor-stage` uses the supplied child module and must preserve identity at `module.record.random_id.this`.
+
+All generated fixture data, Terraform state, plans, provider metadata, and copied configurations live under the ignored Lab 11 `.lab-state/` directory. No generated identifier is committed.
+
+### Repository tooling enhancement
+
+`tools/labctl.py` now validates state-refactor manifest metadata and provides:
+
+```text
+python tools/labctl.py seed <lab-id>
+```
+
+The manifest supplies a portable argument list for the lab-specific seed script. State-refactor manifests also declare safe lab-relative generated paths. Status reports those paths, and reset removes them plus nested lab-owned `.terraform/`, state, plan, and lock artifacts. Existing Lab 01 and Lab 07 manifests remain valid.
+
+### Starter gate
+
+Executed from a clean reset and fresh seed:
+
+```text
+python tools/labctl.py reset 11
+python tools/labctl.py seed 11
+python tools/labctl.py status 11
+python tools/labctl.py check 11
+```
+
+Observed result: PASS as an expected behavioral failure. Formatting passed. The seed established and reported `random_id.legacy_record`. The verifier then reported `EXPECTED_STATE_REFACTOR_INCOMPLETE` because the starter import stage planned a create instead of one import with zero create/delete actions.
+
+### Canonical solution gate
+
+Canonical import and moved blocks were added transiently, tested, and removed so the learner-facing branch retains only the genuine starter. The first complete successful run reported:
+
+```text
+Import plan summary: 1 to import, 0 to add, 0 to change, 0 to destroy.
+Imported state address: random_id.legacy_record
+Refactor plan summary: 0 to add, 0 to change, 0 to destroy.
+Final state address: module.record.random_id.this
+Final plan summary: 0 to add, 0 to change, 0 to destroy (no-op).
+```
+
+The verifier also compared the imported and final identifier values, inspected the plan's exact `previous_address` mapping, applied the address-only move, and required a final detailed-exitcode plan to return no changes.
+
+### Reset and second run
+
+After the first canonical pass, the following sequence was executed:
+
+```text
+python tools/labctl.py reset 11
+PowerShell assertion that labs/11-import-moved-refactor-broken/.lab-state no longer existed
+python tools/labctl.py seed 11
+python tools/labctl.py check 11 --mode solution
+```
+
+Reset removed the learner and bootstrap `.terraform/` directories, all state/plan/fixture contents through `.lab-state/`, and the recorded solution result. The explicit path assertion passed. The second seed and canonical solution run reproduced the same old/imported/final addresses and the same import, refactor, and final no-op summaries shown above.
+
+### Cloud safety
+
+No AWS provider was configured, no AWS credentials were requested or read, and no cloud API or real-cloud apply was executed. Terraform apply was limited to the local logical `random_id` fixture inside Lab 11's isolated state.
+
+### Items not verified
+
+- Linux execution: **NOT VERIFIED**. The Python tooling uses portable filesystem and subprocess APIs, but this phase ran on Windows only and no Linux runner was available.
+- Terraform versions other than v1.14.0: **NOT VERIFIED**. The manifest permits Terraform `>= 1.6, < 2.0`, but only v1.14.0 was executed.
+- Remote-service import behavior: **NOT VERIFIED by design**. The default lab intentionally uses a logical provider so it can verify Terraform import/state semantics without credentials, external drift, or cloud cost.
+
+### Remaining risks
+
+- The logical `random_id` fixture models an importable identity but does not exercise a remote provider read API. That tradeoff is documented and keeps the default gate deterministic and cost-free.
+- The canonical blocks were verified transiently and are not stored on `main`. They must remain isolated on a future solution/grader branch.
+- Lab 03 remains a legacy duplicate and is intentionally deferred to its separately scoped phase.

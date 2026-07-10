@@ -45,3 +45,6 @@ terraform.rc
 
 # labctl records local validation evidence outside source directories.
 /.labctl/
+
+# Lab-owned state-refactor work directories.
+**/.lab-state/

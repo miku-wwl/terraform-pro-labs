@@ -1,0 +1,54 @@
+{
+  "schema_version": 1,
+  "id": 11,
+  "title": "Import, Moved Blocks, and Module Refactor",
+  "type": "state-refactor",
+  "tier": "operations-state",
+  "difficulty": "hard",
+  "estimated_minutes": 35,
+  "execution": {
+    "mode": "local-state",
+    "terraform_version": ">= 1.6, < 2.0",
+    "requires_cloud_credentials": false,
+    "creates_billable_resources": false,
+    "backend": "isolated-local"
+  },
+  "validation": {
+    "starter_expected_result": "fail",
+    "expected_failure_stage": "test",
+    "expected_error_category": "state-refactor-behavior",
+    "expected_failing_test": "scripts/verify_refactor.py",
+    "expected_failure_marker": "EXPECTED_STATE_REFACTOR_INCOMPLETE",
+    "solution_expected_result": "pass",
+    "commands": [
+      {
+        "name": "format",
+        "stage": "format",
+        "argv": ["terraform", "fmt", "-check", "-recursive"]
+      },
+      {
+        "name": "state refactor behavior",
+        "stage": "test",
+        "argv": ["{python}", "../scripts/verify_refactor.py"]
+      }
+    ]
+  },
+  "state": {
+    "seed_argv": ["{python}", "scripts/seed_state.py"],
+    "generated_paths": [".lab-state"]
+  },
+  "editable_paths": [
+    "starter/import-stage/main.tf",
+    "starter/refactor-stage/main.tf"
+  ],
+  "protected_paths": [
+    "lab.yaml",
+    "bootstrap/old-config",
+    "starter/import-stage/versions.tf",
+    "starter/refactor-stage/versions.tf",
+    "starter/modules",
+    "scripts/seed_state.py",
+    "scripts/verify_refactor.py",
+    "tests"
+  ]
+}
