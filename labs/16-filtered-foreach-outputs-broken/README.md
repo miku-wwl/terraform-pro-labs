@@ -1,59 +1,88 @@
-# Lab 16 — Filtered for_each and Map Outputs
+# Lab 16 - Filtered for_each and Stable Map Outputs
 
-Practice using filtered for_each expressions and shaping outputs as stable maps instead of fragile lists.
+## Scenario
 
-## Lab metadata
+A service catalog contains enabled and disabled entries. The current root creates deployment records for every entry and exposes positional lists. Refactor only the selected subset while preserving logical service names in resource addresses and outputs.
 
-- **Lab type:** `correction`
-- **Tier:** `core-authoring`
-- **Difficulty:** `medium`
-- **Success mode:** `plan`
-- **Estimated time:** `20 minutes`
-- **AWS cost risk:** `low`
-- **State mode:** `stateless`
+## Skills tested
 
+- Filtering a map for `for_each`
+- Stable logical resource keys
+- Map-shaped outputs derived from managed resources
+- Empty-selection boundary behavior
 
-## What this lab is testing
-- filtered for_each
-- stable keys
-- map-shaped outputs
-- conditional resource creation
+## Difficulty and estimated time
+
+- Difficulty: medium
+- Estimated time: 20 minutes
+
+## Execution mode
+
+Local Terraform authoring with `terraform_data`.
+
+## Cloud credentials required
+
+No.
+
+## Cost risk
+
+None.
+
+## Starting state
+
+The input is already a map, but the starter deploys disabled services too and converts results to lists, losing stable output keys.
+
+## Files allowed to edit
+
+- `starter/main.tf`
+
+## Files not allowed to edit
+
+- `starter/versions.tf`
+- `tests/public.tftest.hcl`
+- `scripts/verify_tests.py`
+- `lab.yaml`
 
 ## Tasks
-- create resources from structured input with stable keys
-- filter iteration so only selected resources are created
-- avoid count-based indexing
-- shape outputs as maps keyed by logical names
 
+1. Derive the enabled subset of the service map.
+2. Iterate deployment records only over that subset.
+3. Return deployment identifiers and ports as maps keyed by service name.
+4. Keep behavior safe when no services are enabled.
 
+## Constraints
 
+- Do not use `count` or positional indexing.
+- Do not create a deployment record for a disabled service.
+- Preserve input map keys without synthesizing numeric keys.
+- Reject ports outside the valid TCP range.
+
+## Expected initial failure
+
+`python tools/labctl.py check 16` reports `EXPECTED_FILTERED_FOREACH_INCOMPLETE` at the test stage because the starter includes a disabled key and returns lists.
+
+## Validation commands
+
+```bash
+python tools/labctl.py check 16
+python tools/labctl.py status 16
+```
 
 ## Success criteria
-- invalid input values are rejected with variable validation where appropriate
-- unsafe configuration is blocked with a precondition where appropriate
-- advisory quality concerns are expressed with a check block where appropriate
-- `terraform validate` passes
-- `terraform plan` passes for the expected scenario(s)
 
-## How to work this lab
+- Default output keys are exactly `api` and `worker`.
+- Exact ports remain associated with their logical names.
+- Reordering map declarations does not affect identity.
+- An all-disabled input produces empty maps.
+- An invalid port is rejected before planning resources.
 
-This repository uses a single public working branch:
-
-- `main` — broken starting point
-
-Create your own working branch from `main`:
+## Reset instructions
 
 ```bash
-git switch -c my-solution
+python tools/labctl.py reset 16
 ```
 
-When you are done, run the normal Terraform workflow for the lab:
+## Limited hints
 
-```bash
-terraform init
-terraform validate
-terraform plan
-```
-
-## Why this lab matters
-The Terraform Pro exam expects you to reason about stable addressing and clean output shaping under time pressure.
+- Filter before assigning the collection to the resource.
+- Preserve `for_each` keys when shaping outputs.

@@ -426,3 +426,106 @@ Terraform request, cloud API call, or billable resource was used.
   general HCL parser; its negative fixtures cover the prohibited expression and hardcoding cases.
 - The other 27 labs remain legacy inputs and are intentionally excluded from `check --all` until
   separately migrated under Starter Standard v1.
+
+## Phase 6 - Core Authoring Batch A
+
+Migration date: 2026-07-11
+
+Working branch: `main`
+
+Scope: Labs 02, 10, 16, and 18 plus their matrix and migration-report records. No other lab,
+shared tool, frozen standard, CI configuration, or later-phase artifact was modified.
+
+### Original defects and migration design
+
+- Lab 02 was a credential-dependent S3 `count` starter with no tests, conditional objects, safe
+  names, or deterministic failure. It is now a provider-free catalog refactor exercise. The
+  starter deliberately retains positional iteration, unfiltered setting records, and list outputs.
+- Lab 10 referenced three missing module directories, could not initialize, and tested only
+  non-null outputs with invalid `.value` access. It now has protected local naming, identity, and
+  compute child modules. The learner repairs two root references without changing module contracts.
+- Lab 16 was a complete duplicate of Lab 15's S3 solution and its tests checked only output
+  presence. It is now narrowly scoped to filtering enabled services and preserving exact map keys
+  and values; the starter intentionally deploys every entry and emits lists.
+- Lab 18 exposed almost all requested S3 answer patterns while retaining one unsafe output and
+  requiring AWS for its enabled path. It now models a zero-or-one local marker. Both starter
+  outputs are unsafe, while the protected verifier requires the canonical source to demonstrate
+  both `one()` and `try()` after its behavioral tests pass.
+
+All four labs use only the built-in `terraform_data` resource. No AWS provider, provider download,
+credential lookup, globally unique name, backend initialization, real apply, or billable resource
+is part of the default workflow.
+
+### Starter gates
+
+For each lab, the following sequence was executed:
+
+```text
+python tools/labctl.py reset <lab-id>
+python tools/labctl.py check <lab-id>
+```
+
+All four starters passed format, offline init, and validate before failing at the protected test
+stage for the intended behavior:
+
+| Lab | Marker | Observed target failure |
+| --- | --- | --- |
+| 02 | `EXPECTED_DYNAMIC_CONFIGURATION_INCOMPLETE` | tuple/list results did not satisfy stable maps or conditional filtering |
+| 10 | `EXPECTED_MODULE_COMPOSITION_INCOMPLETE` | compute and root outputs bypassed the identity module output |
+| 16 | `EXPECTED_FILTERED_FOREACH_INCOMPLETE` | disabled `docs` remained and outputs were positional lists |
+| 18 | `EXPECTED_CONDITIONAL_READ_INCOMPLETE` | disabled count produced invalid index errors and the source contract lacked both safe-read functions |
+
+After canonical verification and restoration, the same four starter gates were rerun and reproduced
+the same markers and failure categories.
+
+### Canonical solution gates
+
+Canonical edits were applied transiently and removed after verification. For each lab,
+`python tools/labctl.py check <lab-id> --mode solution` passed format, offline init, validate, and
+three Terraform Test runs:
+
+- Lab 02: exact default keys/filtering/tag precedence, empty-map boundary, and invalid retention.
+- Lab 10: exact default wiring, alternate root inputs, and unsupported environment failure.
+- Lab 16: exact enabled keys/ports, all-disabled empty maps, and invalid port failure.
+- Lab 18: disabled null behavior, enabled exact values, invalid name failure, plus protected
+  confirmation that both `one()` and `try()` occur in the editable source.
+
+Each suite reported `3 passed, 0 failed` on canonical run 1.
+
+### Reset and second run
+
+Between canonical runs, `python tools/labctl.py reset <lab-id>` was executed for every lab, followed
+by `python tools/labctl.py status <lab-id>`. Every status reported `Generated artifacts: 0` and no
+recorded starter or solution result. A second canonical solution check then reported `3 passed,
+0 failed` for each lab again. Lab 10 reset removed both root and starter module initialization
+caches; the other labs removed their root test initialization caches and result records.
+
+### Batch and repository regression
+
+The four restored learner starters were reset and checked together; all reproduced their expected
+test-stage failures. The repository aggregate starter gate was then run with:
+
+```text
+python tools/labctl.py check --all
+```
+
+It covered the five Phase 5 pilots and these four Phase 6 labs while skipping legacy labs. The
+observed summary was `Passed: 01, 02, 07, 10, 11, 16, 18, 25, 31` and `Failed: none`.
+
+### Items not verified
+
+- Linux execution: **NOT VERIFIED**. This phase ran on Windows only; the new scripts use `pathlib`,
+  subprocess argument lists, and no shell-specific commands.
+- Terraform versions other than v1.14.0: **NOT VERIFIED**. Only the installed v1.14.0 binary was
+  executed; manifests permit `>= 1.6, < 2.0`.
+- Real AWS behavior: **NOT VERIFIED by design**. These are local authoring/module-semantics labs and
+  intentionally contain no AWS provider or resource.
+
+### Remaining risks
+
+- `terraform_data` verifies Terraform graph, collection, output, and module semantics but does not
+  exercise an external provider schema. That is intentional for this core-authoring batch.
+- Public behavioral tests reveal required result shapes and example values, but do not include the
+  canonical HCL expressions. Blind practice still depends on respecting protected paths.
+- Canonical implementations were verified transiently and are not retained on the learner-facing
+  branch; they must remain isolated in a future solution/grader branch.

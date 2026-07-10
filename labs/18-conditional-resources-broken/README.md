@@ -1,61 +1,87 @@
-# Lab 18 — Conditional Resources with count, one(), and try()
+# Lab 18 - Conditional count with one() and try()
 
-Practice conditionally creating resources and safely reading their values with count, one(), and try().
+## Scenario
 
-## Lab metadata
+A deployment marker is optional. Its current outputs directly index the zero-or-one resource, so the disabled path crashes during planning. Make both enabled and disabled paths safe while demonstrating the two requested collection-reading patterns.
 
-- **Lab type:** `correction`
-- **Tier:** `core-authoring`
-- **Difficulty:** `medium`
-- **Success mode:** `plan`
-- **Estimated time:** `15 minutes`
-- **AWS cost risk:** `low`
-- **State mode:** `stateless`
+## Skills tested
 
+- Conditional `count` with zero or one instance
+- Reading a zero-or-one splat with `one()`
+- Using `try()` around an expression that can fail
+- Designing nullable outputs for absent resources
 
-## What this lab is testing
-- count = 0 or 1
-- safe conditional outputs
-- one()
-- try()
-- avoiding brittle index access
+## Difficulty and estimated time
+
+- Difficulty: medium
+- Estimated time: 15 minutes
+
+## Execution mode
+
+Local Terraform authoring with `terraform_data`.
+
+## Cloud credentials required
+
+No.
+
+## Cost risk
+
+None.
+
+## Starting state
+
+The resource already uses conditional count. Both outputs use unsafe direct indexing and the default disabled plan fails.
+
+## Files allowed to edit
+
+- `starter/main.tf`
+
+## Files not allowed to edit
+
+- `starter/versions.tf`
+- `tests/public.tftest.hcl`
+- `scripts/verify_tests.py`
+- `lab.yaml`
 
 ## Tasks
-- conditionally create a resource with count
-- avoid unsafe direct indexing when the resource may not exist
-- use one() for a clean conditional output
-- use try() where an expression may fail
-- surface the created resource value clearly
 
+1. Keep the resource count at zero when disabled and one when enabled.
+2. Make `selected_name` safely read the zero-or-one collection with `one()`.
+3. Make `selected_owner` safely handle a potentially invalid index with `try()`.
+4. Preserve `null` as the absence value and exact configured values when enabled.
 
+## Constraints
 
+- Use both `one()` and `try()` in the editable configuration.
+- Do not use sentinel strings for absence.
+- Do not add providers or external dependencies.
+- Reject an empty marker name.
+
+## Expected initial failure
+
+`python tools/labctl.py check 18` reports `EXPECTED_CONDITIONAL_READ_INCOMPLETE` at the test stage. The unmodified default plan fails because count is zero and the outputs index element zero.
+
+## Validation commands
+
+```bash
+python tools/labctl.py check 18
+python tools/labctl.py status 18
+```
 
 ## Success criteria
-- invalid input values are rejected with variable validation where appropriate
-- unsafe configuration is blocked with a precondition where appropriate
-- advisory quality concerns are expressed with a check block where appropriate
-- `terraform validate` passes
-- `terraform plan` passes for the expected scenario(s)
 
-## How to work this lab
+- Disabled input plans successfully with a resource count of zero and both optional outputs set to `null`.
+- Enabled input plans one record and returns the exact configured name and owner.
+- An empty name is rejected.
+- The source uses both requested safe-read functions.
 
-This repository uses a single public working branch:
-
-- `main` — broken starting point
-
-Create your own working branch from `main`:
+## Reset instructions
 
 ```bash
-git switch -c my-solution
+python tools/labctl.py reset 18
 ```
 
-When you are done, run the normal Terraform workflow for the lab:
+## Limited hints
 
-```bash
-terraform init
-terraform validate
-terraform plan
-```
-
-## Why this lab matters
-The Terraform Pro exam expects you to reason about optional resources and write expressions that stay safe when count is zero.
+- A splat converts zero-or-one instances into a zero-or-one tuple.
+- One output can read that tuple; the other can recover from a failing expression.
