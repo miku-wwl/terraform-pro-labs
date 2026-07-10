@@ -1,61 +1,113 @@
-# Lab 25 - HCP Terraform Operations
+# Lab 25 - HCP Terraform Operations Decisions
 
-Practice conceptual operations topics including VCS-driven workflows, run triggers, policy checks, cost estimation, team permissions, and API-driven runs.
+## Scenario
 
-## Lab metadata
+Northstar runs production infrastructure through HCP Terraform. Read `starter/SCENARIO.md`, then choose an operating model for source-driven runs, exceptional automation, pull-request plans, workspace dependencies, governance, permissions, and production approvals.
 
-- **Lab type:** `design`
-- **Tier:** `operations-state`
-- **Difficulty:** `hard`
-- **Success mode:** `conceptual`
-- **Estimated time:** `30 minutes`
-- **AWS cost risk:** `none`
-- **State mode:** `stateless`
+This is a conceptual decision lab. It contains no Terraform configuration and does not contact HCP Terraform.
 
+## Skills tested
 
-## What this lab is testing
-- vcs-driven run lifecycle
-- run trigger topology
-- policy enforcement modes
-- cost estimation limits
-- workspace permissions
-- api-driven runs
+- Distinguishing VCS-driven and API-driven runs
+- Using speculative plans for pull-request feedback
+- Directing run triggers between dependent workspaces
+- Selecting production policy enforcement and interpreting cost estimates
+- Separating plan, apply, and administrative permissions
+- Defining auto-apply and production approval boundaries
+
+## Difficulty and estimated time
+
+- Difficulty: hard
+- Estimated time: 30 minutes
+
+## Execution mode
+
+- Mode: local conceptual scoring
+- Terraform CLI: not used
+
+## Cloud credentials required
+
+No. The lab does not require HCP Terraform, AWS, or other cloud credentials.
+
+## Cost risk
+
+None. Validation reads local Markdown and rubric files only.
+
+## Starting state
+
+`starter/student-answer.md` contains eight `undecided` choices and placeholder rationale prompts. The public rubric describes what is scored but contains no canonical choices.
+
+## Files allowed to edit
+
+- `starter/student-answer.md`
+
+## Files not allowed to edit
+
+- `starter/SCENARIO.md`
+- `starter/QUESTIONS.md`
+- `rubric.yaml`
+- `scripts/score_answer.py`
+- `lab.yaml`
 
 ## Tasks
-- map a producer-consumer workspace topology
-- decide where policy checks should block applies
-- choose plan-only and apply permission boundaries
-- explain when api-driven runs are preferable to vcs-driven runs
 
+1. Read the scenario and all option definitions.
+2. Replace every `undecided` value with exactly one option ID from the corresponding question.
+3. Write a concise rationale under every matching decision heading.
+4. Keep all decision IDs and Markdown headings unchanged so the scorer can locate them.
 
+## Constraints
 
+- Make one decision for every question; do not combine multiple option IDs.
+- Base the design on least privilege and an explicit production approval boundary.
+- Treat cost estimation as operational evidence, not as a complete billing guarantee.
+- Do not add Terraform, provider, token, organization, or workspace credentials.
+
+## Expected initial failure
+
+From the repository root, the unmodified starter fails the scoring stage with `EXPECTED_CONCEPTUAL_RESPONSE_INCOMPLETE` because decisions and rationales are intentionally blank.
+
+## Validation commands
+
+Run the repository gate from the repository root:
+
+```bash
+python tools/labctl.py check 25
+```
+
+To invoke the scorer directly:
+
+```bash
+python labs/25-hcp-terraform-ops-broken/scripts/score_answer.py --rubric labs/25-hcp-terraform-ops-broken/rubric.yaml --answer labs/25-hcp-terraform-ops-broken/starter/student-answer.md
+```
 
 ## Success criteria
-- invalid input values are rejected with variable validation where appropriate
-- unsafe configuration is blocked with a precondition where appropriate
-- advisory quality concerns are expressed with a check block where appropriate
-- `terraform validate` passes
-- `terraform plan` passes for the expected scenario(s)
 
-## How to work this lab
+- All eight operating decisions use valid option IDs.
+- The choices correctly distinguish routine VCS runs from exceptional API automation.
+- Pull requests use a non-applicable plan path.
+- Workspace dependency direction follows producer-to-consumer apply success.
+- Production policy, permissions, and auto-apply choices preserve an approval boundary.
+- Cost-estimation limitations are acknowledged.
+- Every decision has a substantive rationale and the score meets the published threshold.
 
-This repository uses a single public working branch:
-
-- `main` — broken starting point
-
-Create your own working branch from `main`:
+## Reset instructions
 
 ```bash
-git switch -c my-solution
+python tools/labctl.py reset 25
 ```
 
-When you are done, run the normal Terraform workflow for the lab:
+Reset removes only recorded validation results. It deliberately preserves `student-answer.md`. To discard your own answer, use your version-control workflow explicitly.
 
-```bash
-terraform init
-terraform validate
-terraform plan
-```
+## Limited hints
 
-## Why this lab matters
-A large portion of Terraform Pro exam coverage is operational and platform-oriented rather than pure HCL authoring.
+- A plan that cannot apply is useful before merge.
+- A dependency trigger points from the workspace that successfully applied to the workspace that consumes its results.
+- Permission to propose a run does not have to imply permission to apply it.
+
+## Official references
+
+- [Run modes and options](https://developer.hashicorp.com/terraform/cloud-docs/workspaces/run/modes-and-options)
+- [Run triggers](https://developer.hashicorp.com/terraform/cloud-docs/workspaces/settings/run-triggers)
+- [Workspace permissions](https://developer.hashicorp.com/terraform/cloud-docs/users-teams-organizations/permissions/workspace)
+- [Workspace settings](https://developer.hashicorp.com/terraform/cloud-docs/workspaces/settings)

@@ -1,0 +1,46 @@
+{
+  "schema_version": 1,
+  "title": "HCP Terraform operations decision rubric",
+  "passing_score": 96,
+  "maximum_score": 100,
+  "scoring_model": {
+    "correct_choice_points_per_decision": 10,
+    "substantive_rationale_points_per_decision": 2,
+    "complete_response_bonus": 4,
+    "minimum_rationale_words": 12
+  },
+  "dimensions": [
+    {
+      "id": "routine_run_workflow",
+      "focus": "Choose the auditable default workflow for repository-owned infrastructure changes."
+    },
+    {
+      "id": "api_run_boundary",
+      "focus": "Identify when programmatic configuration upload and run creation is justified."
+    },
+    {
+      "id": "pull_request_feedback",
+      "focus": "Give reviewers safe infrastructure-change feedback before merge."
+    },
+    {
+      "id": "workspace_dependency",
+      "focus": "Queue the dependent workspace only after its source dependency is successfully applied."
+    },
+    {
+      "id": "production_policy",
+      "focus": "Select enforcement appropriate to a non-negotiable production security rule."
+    },
+    {
+      "id": "cost_estimation",
+      "focus": "Use cost estimates while acknowledging coverage and pricing limitations."
+    },
+    {
+      "id": "team_permissions",
+      "focus": "Separate proposing changes from approving production infrastructure changes."
+    },
+    {
+      "id": "production_auto_apply",
+      "focus": "Define auto-apply and human approval boundaries for production and non-production."
+    }
+  ]
+}

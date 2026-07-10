@@ -1,0 +1,50 @@
+{
+  "schema_version": 1,
+  "id": 25,
+  "title": "HCP Terraform Operations Decisions",
+  "type": "conceptual",
+  "tier": "operations-state",
+  "difficulty": "hard",
+  "estimated_minutes": 30,
+  "execution": {
+    "mode": "local-scoring",
+    "terraform_version": "not-required",
+    "requires_cloud_credentials": false,
+    "creates_billable_resources": false,
+    "backend": "none"
+  },
+  "validation": {
+    "starter_expected_result": "fail",
+    "expected_failure_stage": "scoring",
+    "expected_error_category": "conceptual-response-incomplete",
+    "expected_failing_test": "scripts/score_answer.py",
+    "expected_failure_marker": "EXPECTED_CONCEPTUAL_RESPONSE_INCOMPLETE",
+    "solution_expected_result": "pass",
+    "commands": [
+      {
+        "name": "conceptual scoring",
+        "stage": "scoring",
+        "argv": [
+          "{python}",
+          "../scripts/score_answer.py",
+          "--rubric",
+          "../rubric.yaml",
+          "--answer",
+          "student-answer.md"
+        ]
+      }
+    ]
+  },
+  "conceptual": {
+    "rubric_path": "rubric.yaml",
+    "answer_path": "starter/student-answer.md"
+  },
+  "editable_paths": ["starter/student-answer.md"],
+  "protected_paths": [
+    "lab.yaml",
+    "rubric.yaml",
+    "starter/SCENARIO.md",
+    "starter/QUESTIONS.md",
+    "scripts/score_answer.py"
+  ]
+}

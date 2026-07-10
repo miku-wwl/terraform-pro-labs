@@ -54,6 +54,17 @@ REQUIRED_STATE = {
     "generated_paths": list,
 }
 
+REQUIRED_CONCEPTUAL = {
+    "rubric_path": str,
+    "answer_path": str,
+}
+
+REQUIRED_BACKEND = {
+    "example_files": list,
+    "init_metadata_paths": list,
+    "real_init_opt_in": bool,
+}
+
 
 class ManifestError(ValueError):
     """Raised when a lab manifest does not satisfy the Phase 2 schema."""
@@ -151,6 +162,55 @@ def load_manifest(lab_dir: Path) -> dict[str, Any]:
             ):
                 raise ManifestError(f"{lab_dir.name}.state.generated_paths: unsafe path '{relative}'")
 
+    if manifest["type"] == "conceptual":
+        if "conceptual" not in manifest or not isinstance(manifest["conceptual"], dict):
+            raise ManifestError(f"{lab_dir.name}: conceptual labs require a conceptual mapping")
+        conceptual = manifest["conceptual"]
+        require_fields(conceptual, REQUIRED_CONCEPTUAL, f"{lab_dir.name}.conceptual")
+        for field in REQUIRED_CONCEPTUAL:
+            relative = Path(conceptual[field])
+            if relative.is_absolute() or ".." in relative.parts or not (lab_dir / relative).is_file():
+                raise ManifestError(
+                    f"{lab_dir.name}.conceptual.{field}: unsafe or missing file '{conceptual[field]}'"
+                )
+        if list((lab_dir / "starter").glob("*.tf")):
+            raise ManifestError(f"{lab_dir.name}: conceptual starter must not contain Terraform files")
+
+    if manifest["type"] == "backend-remote-state":
+        if "backend" not in manifest or not isinstance(manifest["backend"], dict):
+            raise ManifestError(f"{lab_dir.name}: backend labs require a backend mapping")
+        backend = manifest["backend"]
+        require_fields(backend, REQUIRED_BACKEND, f"{lab_dir.name}.backend")
+        if not backend["example_files"] or not all(
+            isinstance(item, str) for item in backend["example_files"]
+        ):
+            raise ManifestError(f"{lab_dir.name}.backend.example_files must be a non-empty list")
+        for relative in backend["example_files"]:
+            relative_path = Path(relative)
+            if (
+                relative_path.is_absolute()
+                or ".." in relative_path.parts
+                or relative_path.suffix != ".example"
+                or not (lab_dir / relative_path).is_file()
+            ):
+                raise ManifestError(
+                    f"{lab_dir.name}.backend.example_files: unsafe or missing example '{relative}'"
+                )
+        if not backend["init_metadata_paths"] or not all(
+            isinstance(item, str) for item in backend["init_metadata_paths"]
+        ):
+            raise ManifestError(f"{lab_dir.name}.backend.init_metadata_paths must be a non-empty list")
+        for relative in backend["init_metadata_paths"]:
+            relative_path = Path(relative)
+            if (
+                relative_path.is_absolute()
+                or ".." in relative_path.parts
+                or relative_path in (Path("."), Path(""))
+            ):
+                raise ManifestError(
+                    f"{lab_dir.name}.backend.init_metadata_paths: unsafe path '{relative}'"
+                )
+
     return manifest
 
 
@@ -189,6 +249,8 @@ def generated_artifacts(lab_dir: Path, manifest: dict[str, Any]) -> list[Path]:
     candidates.extend(starter.rglob("*.tfplan"))
     if manifest["type"] == "state-refactor":
         candidates.extend(lab_dir / relative for relative in manifest["state"]["generated_paths"])
+    if manifest["type"] == "backend-remote-state":
+        candidates.extend(lab_dir / relative for relative in manifest["backend"]["init_metadata_paths"])
     existing = {path for path in candidates if path.exists()}
     return sorted(existing, key=lambda path: len(path.parts), reverse=True)
 

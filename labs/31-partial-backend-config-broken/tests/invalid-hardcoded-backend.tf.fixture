@@ -1,0 +1,8 @@
+terraform {
+  backend "s3" {
+    encrypt = true
+    bucket  = "company-production-state"
+    key     = "network/prod.tfstate"
+    region  = "us-east-1"
+  }
+}

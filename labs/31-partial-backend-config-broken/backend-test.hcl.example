@@ -1,0 +1,4 @@
+# Placeholder only. Copy to backend-test.hcl and replace the bucket before an explicitly authorized real init.
+bucket = "REPLACE_WITH_TEST_STATE_BUCKET"
+key    = "network/test.tfstate"
+region = "us-east-1"

@@ -210,3 +210,118 @@ No AWS provider was configured, no AWS credentials were requested or read, and n
 - The logical `random_id` fixture models an importable identity but does not exercise a remote provider read API. That tradeoff is documented and keeps the default gate deterministic and cost-free.
 - The canonical blocks were verified transiently and are not stored on `main`. They must remain isolated on a future solution/grader branch.
 - Lab 03 remains a legacy duplicate and is intentionally deferred to its separately scoped phase.
+
+## Phase 4 — Conceptual and partial-backend pilots
+
+Migration date: 2026-07-10
+
+Working branch: `main`
+
+Scope: Lab 25, Lab 31, the minimum conceptual/backend manifest and reset support required by those labs, and corresponding documentation only. No other conceptual, backend, remote-state, workspace, or state lab was modified.
+
+### Original defects
+
+Lab 25 encoded HCP Terraform questions as `locals` and outputs, duplicated Terraform version constraints, forced an irrelevant AWS provider download, supplied no response artifact or rubric, and documented a meaningless Terraform plan workflow for a conceptual exercise.
+
+Lab 31 referenced a nonexistent `backend.hcl`, put empty environment fields in an S3 backend block, declared an unnecessary AWS provider and ordinary environment variable beside the backend without a valid boundary, provided no environment examples, had no offline check, and could not demonstrate backend metadata reset.
+
+### Repository tooling enhancement
+
+`tools/labctl.py` now validates type-specific metadata for:
+
+- conceptual labs, including existing rubric and answer artifacts and the absence of Terraform files in the conceptual starter;
+- backend labs, including safe `.example` files, declared init-metadata paths, and explicit real-init opt-in metadata.
+
+Backend init-metadata paths are included in status and reset discovery. Existing Lab 01, Lab 07, and Lab 11 manifests remained valid after the schema extension.
+
+### Lab 25 — HCP Terraform operations decisions
+
+The Terraform configuration and AWS dependency were removed. The lab now uses:
+
+- `starter/SCENARIO.md` for a production operating-model case;
+- `starter/QUESTIONS.md` for eight structured decisions;
+- `starter/student-answer.md` for choices and free-form rationales;
+- `rubric.yaml` for public dimensions, weights, rationale requirements, and pass threshold;
+- `scripts/score_answer.py` for deterministic local scoring.
+
+The questions cover VCS-driven runs, an API-driven automation boundary, speculative plans, producer-to-consumer run triggers, production policy enforcement, cost-estimation limitations, team permissions, and auto-apply/production approvals. Correct decisions contribute 80 points; non-placeholder rationales and response completeness contribute 20. The 96-point threshold requires all key decisions to be correct. Rationales are not matched against canonical prose.
+
+Canonical option choices are not stored in learner-facing Markdown or rubric data. The scorer stores only protected comparison digests. A canonical response was inserted transiently for verification and then the `undecided` starter was restored.
+
+Starter gate:
+
+```text
+python tools/labctl.py reset 25
+python tools/labctl.py check 25
+```
+
+Observed result: PASS as an expected scoring failure. The initial answer reported `EXPECTED_CONCEPTUAL_RESPONSE_INCOMPLETE` for the eight undecided choices and placeholder rationales.
+
+Canonical solution gate:
+
+```text
+python tools/labctl.py check 25 --mode solution
+python tools/labctl.py reset 25
+python tools/labctl.py check 25 --mode solution
+```
+
+Observed result: both canonical runs scored 100/100 and passed. Reset removed recorded results while deliberately preserving the response artifact, as documented for conceptual work.
+
+### Lab 31 — partial S3 backend configuration
+
+The lab now has one static partial `backend "s3"` block, an ordinary `environment` input that is evaluated only as root-module configuration, and three environment-specific init examples:
+
+```text
+backend-dev.hcl.example
+backend-test.hcl.example
+backend-prod.hcl.example
+```
+
+The examples contain deliberately non-real bucket placeholders, isolated keys, literal regions, and no credentials. Static shared encryption and S3 lockfile settings remain in the backend block. Learner-created non-example backend files are ignored locally and are not deleted by reset.
+
+The default manifest runs format, `terraform init -backend=false`, validate, and `scripts/verify_backend.py`. The checker does not initialize S3. Its protected negative controls prove that it detects both a backend expression and hardcoded bucket/key/region patterns before it inspects the learner configuration.
+
+Starter gate:
+
+```text
+python tools/labctl.py reset 31
+python tools/labctl.py check 31
+```
+
+Observed result: PASS as an expected behavioral failure. Format, offline init, and validate passed. The negative controls and all three example checks passed. The learner configuration then reported `EXPECTED_PARTIAL_BACKEND_INCOMPLETE` because `key` was still an init-time field hardcoded in the static block.
+
+Canonical solution gate:
+
+```text
+python tools/labctl.py check 31 --mode solution
+python tools/labctl.py reset 31
+python tools/labctl.py check 31 --mode solution
+```
+
+Observed result: both solution runs passed format, offline init, validate, checker negative controls, example validation, and the actual static backend boundary check. No S3 connection or credential lookup occurred.
+
+### Reset and repeatability
+
+Lab 25's reset behavior was exercised between two 100/100 solution runs. It removed local result records and preserved the answer file.
+
+Because a provider-free `terraform init -backend=false` does not create `.terraform` in this configuration, Lab 31 reset coverage used an ignored, synthetic `.terraform/terraform.tfstate` sentinel shaped as backend initialization metadata. `labctl status 31` reported both the metadata file and directory; `labctl reset 31` removed both, and an explicit path assertion confirmed the directory no longer existed. No real backend state was created or deleted.
+
+The canonical changes were removed after repeatability checks, and both learner-facing starters were restored.
+
+### Cloud safety
+
+No AWS or HCP Terraform credentials were requested or read. No cloud provider was installed for Lab 25. Lab 31 used only `terraform init -backend=false`; no real S3 backend initialization, plan, apply, data lookup, or cloud API call was executed.
+
+### Items not verified
+
+- Linux execution: **NOT VERIFIED**. All Python code uses portable standard-library filesystem and subprocess APIs, but this phase ran on Windows and no Linux runner was available.
+- Terraform versions other than v1.14.0: **NOT VERIFIED**. Lab 31 requires `>= 1.10, < 2.0` for the S3 `use_lockfile` setting, but only Terraform v1.14.0 was executed.
+- Real HCP Terraform organization behavior: **NOT VERIFIED by design**. Lab 25 is a local conceptual scenario based on current HashiCorp documentation and does not create runs or require an organization.
+- Real S3 backend initialization: **NOT VERIFIED by design**. It is an explicitly optional learner path requiring separate authorization, authentication, and a learner-owned bucket; default validation never connects to S3.
+
+### Remaining risks
+
+- A public offline conceptual scorer cannot make its expected choices cryptographically secret. Comparison digests prevent an obvious plaintext answer key but can be inspected or brute-forced; blind practice still relies on respecting protected paths.
+- Rationale scoring verifies non-placeholder completeness rather than semantic equivalence. Correct structured decisions carry the decisive score, while human review remains valuable for explanation quality.
+- The static backend parser is intentionally scoped to this lab's one-line assignments and approved static fields. It is protected by explicit dynamic-expression and hardcoding negative controls but is not a general-purpose HCL parser.
+- HCP Terraform feature availability can vary by product edition and can change over time; the scenario was checked against HashiCorp's current official run-mode, run-trigger, workspace-setting, and permission documentation on the migration date.

@@ -1,0 +1,4 @@
+# Placeholder only. Copy to backend-prod.hcl and replace the bucket before an explicitly authorized real init.
+bucket = "REPLACE_WITH_PROD_STATE_BUCKET"
+key    = "network/prod.tfstate"
+region = "us-east-1"
