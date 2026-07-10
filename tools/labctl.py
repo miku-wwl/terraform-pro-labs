@@ -67,7 +67,17 @@ REQUIRED_BACKEND = {
 
 
 class ManifestError(ValueError):
-    """Raised when a lab manifest does not satisfy the Phase 2 schema."""
+    """Raised when a lab manifest does not satisfy the supported schema."""
+
+
+def path_contains(parent: Path, child: Path) -> bool:
+    """Return whether child is the same as, or is contained by, parent."""
+
+    try:
+        child.relative_to(parent)
+    except ValueError:
+        return False
+    return True
 
 
 def lab_directories() -> list[Path]:
@@ -136,11 +146,27 @@ def load_manifest(lab_dir: Path) -> dict[str, Any]:
     for field in ("editable_paths", "protected_paths"):
         if not manifest[field] or not all(isinstance(item, str) for item in manifest[field]):
             raise ManifestError(f"{lab_dir.name}.{field} must be a non-empty list of paths")
+        if len(manifest[field]) != len(set(manifest[field])):
+            raise ManifestError(f"{lab_dir.name}.{field} must not contain duplicate paths")
         for relative in manifest[field]:
             if Path(relative).is_absolute() or ".." in Path(relative).parts:
                 raise ManifestError(f"{lab_dir.name}.{field}: unsafe path '{relative}'")
             if not (lab_dir / relative).exists():
                 raise ManifestError(f"{lab_dir.name}.{field}: path does not exist: {relative}")
+            if field == "editable_paths" and not (lab_dir / relative).is_file():
+                raise ManifestError(
+                    f"{lab_dir.name}.{field}: editable path must be a file: {relative}"
+                )
+
+    editable_paths = [Path(relative) for relative in manifest["editable_paths"]]
+    protected_paths = [Path(relative) for relative in manifest["protected_paths"]]
+    for editable in editable_paths:
+        for protected in protected_paths:
+            if path_contains(protected, editable) or path_contains(editable, protected):
+                raise ManifestError(
+                    f"{lab_dir.name}: editable path '{editable.as_posix()}' overlaps "
+                    f"protected path '{protected.as_posix()}'"
+                )
 
     if manifest["type"] == "state-refactor":
         if "state" not in manifest or not isinstance(manifest["state"], dict):
@@ -307,14 +333,7 @@ def expanded_argv(argv: list[str]) -> list[str]:
     return [sys.executable if value == "{python}" else value for value in argv]
 
 
-def command_check(args: argparse.Namespace) -> int:
-    try:
-        lab_dir = resolve_lab(args.lab_id)
-        manifest = load_manifest(lab_dir)
-    except ManifestError as exc:
-        print(f"ERROR: {exc}", file=sys.stderr)
-        return 1
-
+def run_check(lab_dir: Path, manifest: dict[str, Any], mode: str) -> int:
     validation = manifest["validation"]
     expected_stage = validation["expected_failure_stage"]
     marker = validation["expected_failure_marker"]
@@ -333,43 +352,40 @@ def command_check(args: argparse.Namespace) -> int:
         if completed.stdout:
             print(completed.stdout.rstrip())
 
-        if args.mode == "starter" and command["stage"] == expected_stage:
+        if mode == "starter" and command["stage"] == expected_stage:
             if completed.returncode != 0 and marker in completed.stdout:
                 print(f"PASS: observed expected starter failure at stage '{expected_stage}'.")
-                write_result(manifest["id"], args.mode, "expected_failure_observed", command["name"], completed.returncode)
+                write_result(
+                    manifest["id"],
+                    mode,
+                    "expected_failure_observed",
+                    command["name"],
+                    completed.returncode,
+                )
                 return 0
             outcome = "unexpected_failure" if completed.returncode else "unexpected_pass"
             print(f"FAIL: starter gate {outcome} at stage '{expected_stage}'.", file=sys.stderr)
-            write_result(manifest["id"], args.mode, outcome, command["name"], completed.returncode)
+            write_result(manifest["id"], mode, outcome, command["name"], completed.returncode)
             return 1
 
         if completed.returncode != 0:
             print(f"FAIL: command '{command['name']}' exited {completed.returncode}.", file=sys.stderr)
-            write_result(manifest["id"], args.mode, "unexpected_failure", command["name"], completed.returncode)
+            write_result(
+                manifest["id"], mode, "unexpected_failure", command["name"], completed.returncode
+            )
             return 1
 
-    if args.mode == "starter":
+    if mode == "starter":
         print(f"FAIL: expected failure stage '{expected_stage}' was not reached.", file=sys.stderr)
-        write_result(manifest["id"], args.mode, "unexpected_pass", "none", 0)
+        write_result(manifest["id"], mode, "unexpected_pass", "none", 0)
         return 1
 
     print("PASS: all canonical solution checks passed.")
-    write_result(manifest["id"], args.mode, "pass", "all", 0)
+    write_result(manifest["id"], mode, "pass", "all", 0)
     return 0
 
 
-def command_seed(args: argparse.Namespace) -> int:
-    try:
-        lab_dir = resolve_lab(args.lab_id)
-        manifest = load_manifest(lab_dir)
-    except ManifestError as exc:
-        print(f"ERROR: {exc}", file=sys.stderr)
-        return 1
-
-    if manifest["type"] != "state-refactor":
-        print(f"ERROR: Lab {manifest['id']:02d} does not define a state seed workflow.", file=sys.stderr)
-        return 1
-
+def run_seed(lab_dir: Path, manifest: dict[str, Any]) -> int:
     argv = expanded_argv(manifest["state"]["seed_argv"])
     print(f"==> seed: {' '.join(argv)}")
     completed = subprocess.run(
@@ -387,6 +403,79 @@ def command_seed(args: argparse.Namespace) -> int:
         return completed.returncode
     print(f"PASS: Lab {manifest['id']:02d} state seed completed.")
     return 0
+
+
+def prepare_state_lab(lab_dir: Path, manifest: dict[str, Any]) -> int:
+    """Create a deterministic fresh seed before an aggregate state-lab check."""
+
+    for relative in manifest["state"]["generated_paths"]:
+        generated = lab_dir / relative
+        if generated.exists():
+            remove_path(generated)
+            print(f"Removed {display_relative(generated)} before aggregate state check.")
+    return run_seed(lab_dir, manifest)
+
+
+def command_check(args: argparse.Namespace) -> int:
+    if bool(args.lab_id) == bool(args.check_all):
+        print("ERROR: provide one lab_id or --all, but not both.", file=sys.stderr)
+        return 2
+
+    if not args.check_all:
+        try:
+            lab_dir = resolve_lab(args.lab_id)
+            manifest = load_manifest(lab_dir)
+        except ManifestError as exc:
+            print(f"ERROR: {exc}", file=sys.stderr)
+            return 1
+        return run_check(lab_dir, manifest, args.mode)
+
+    migrated: list[tuple[Path, dict[str, Any]]] = []
+    for lab_dir in lab_directories():
+        if not (lab_dir / "lab.yaml").is_file():
+            continue
+        try:
+            migrated.append((lab_dir, load_manifest(lab_dir)))
+        except ManifestError as exc:
+            print(f"ERROR: {exc}", file=sys.stderr)
+            return 1
+
+    if not migrated:
+        print("ERROR: no migrated labs with manifests were found.", file=sys.stderr)
+        return 1
+
+    print(f"Running {args.mode} gates for {len(migrated)} migrated labs; legacy labs are skipped.")
+    outcomes: list[tuple[int, int]] = []
+    for lab_dir, manifest in migrated:
+        print(f"\n===== Lab {manifest['id']:02d} - {manifest['title']} =====")
+        if manifest["type"] == "state-refactor":
+            prepared = prepare_state_lab(lab_dir, manifest)
+            if prepared != 0:
+                outcomes.append((manifest["id"], prepared))
+                continue
+        outcomes.append((manifest["id"], run_check(lab_dir, manifest, args.mode)))
+
+    failed = [lab_id for lab_id, returncode in outcomes if returncode != 0]
+    passed = [lab_id for lab_id, returncode in outcomes if returncode == 0]
+    print("\n===== Aggregate summary =====")
+    print(f"Passed: {', '.join(f'{lab_id:02d}' for lab_id in passed) or 'none'}")
+    print(f"Failed: {', '.join(f'{lab_id:02d}' for lab_id in failed) or 'none'}")
+    return 1 if failed else 0
+
+
+def command_seed(args: argparse.Namespace) -> int:
+    try:
+        lab_dir = resolve_lab(args.lab_id)
+        manifest = load_manifest(lab_dir)
+    except ManifestError as exc:
+        print(f"ERROR: {exc}", file=sys.stderr)
+        return 1
+
+    if manifest["type"] != "state-refactor":
+        print(f"ERROR: Lab {manifest['id']:02d} does not define a state seed workflow.", file=sys.stderr)
+        return 1
+
+    return run_seed(lab_dir, manifest)
 
 
 def remove_path(path: Path) -> None:
@@ -434,7 +523,13 @@ def build_parser() -> argparse.ArgumentParser:
     status_parser.set_defaults(func=command_status)
 
     check_parser = subparsers.add_parser("check", help="run a starter or solution gate")
-    check_parser.add_argument("lab_id")
+    check_parser.add_argument("lab_id", nargs="?")
+    check_parser.add_argument(
+        "--all",
+        action="store_true",
+        dest="check_all",
+        help="run every migrated lab and skip legacy labs without manifests",
+    )
     check_parser.add_argument("--mode", choices=("starter", "solution"), default="starter")
     check_parser.set_defaults(func=command_check)
 

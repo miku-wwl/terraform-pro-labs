@@ -78,7 +78,33 @@ def rationale_is_substantive(text: str, minimum_words: int) -> bool:
     return len(words) >= minimum_words
 
 
-def score(rubric: dict[str, Any], decisions: dict[str, str], rationales: dict[str, str]) -> tuple[int, list[str]]:
+def parse_question_options(path: Path) -> dict[str, set[str]]:
+    try:
+        text = path.read_text(encoding="utf-8")
+    except OSError as exc:
+        raise ScoringError(f"cannot read questions {path}: {exc}") from exc
+
+    headings = list(
+        re.finditer(r"(?m)^##\s+\d+\..*\(`([a-z][a-z0-9_]*)`\)\s*$", text)
+    )
+    options: dict[str, set[str]] = {}
+    for index, heading in enumerate(headings):
+        start = heading.end()
+        end = headings[index + 1].start() if index + 1 < len(headings) else len(text)
+        options[heading.group(1)] = set(
+            re.findall(r"(?m)^-\s+`([a-z][a-z0-9_]*)`:", text[start:end])
+        )
+    if not options or any(not values for values in options.values()):
+        raise ScoringError("every question must define a decision id and at least one option")
+    return options
+
+
+def score(
+    rubric: dict[str, Any],
+    decisions: dict[str, str],
+    rationales: dict[str, str],
+    question_options: dict[str, set[str]],
+) -> tuple[int, list[str], list[str]]:
     model = rubric.get("scoring_model")
     dimensions = rubric.get("dimensions")
     if not isinstance(model, dict) or not isinstance(dimensions, list):
@@ -89,6 +115,10 @@ def score(rubric: dict[str, Any], decisions: dict[str, str], rationales: dict[st
         raise ScoringError("every rubric dimension must have a string id")
     if set(ids) != set(EXPECTED_SELECTION_DIGESTS):
         raise ScoringError("rubric dimensions do not match the protected decision set")
+    if len(ids) != len(set(ids)):
+        raise ScoringError("rubric dimension ids must be unique")
+    if set(ids) != set(question_options):
+        raise ScoringError("question decision ids do not match rubric dimensions")
 
     choice_points = int(model["correct_choice_points_per_decision"])
     rationale_points = int(model["substantive_rationale_points_per_decision"])
@@ -97,26 +127,39 @@ def score(rubric: dict[str, Any], decisions: dict[str, str], rationales: dict[st
 
     total = 0
     incomplete: list[str] = []
+    details: list[str] = []
     all_rationales_complete = True
     for decision_id in ids:
         selection = decisions.get(decision_id, "")
         rationale = rationales.get(decision_id, "")
         if not selection or selection == "undecided":
             incomplete.append(f"{decision_id}: decision is missing")
+            choice_status = "missing"
+        elif selection not in question_options[decision_id]:
+            incomplete.append(f"{decision_id}: option '{selection}' is not defined")
+            choice_status = "invalid"
         elif hmac.compare_digest(
             selection_digest(decision_id, selection), EXPECTED_SELECTION_DIGESTS[decision_id]
         ):
             total += choice_points
+            choice_status = "correct"
+        else:
+            choice_status = "incorrect"
 
         if rationale_is_substantive(rationale, minimum_words):
             total += rationale_points
+            rationale_status = "substantive"
         else:
             all_rationales_complete = False
             incomplete.append(f"{decision_id}: rationale is incomplete")
+            rationale_status = "incomplete"
+        details.append(
+            f"{decision_id}: choice={choice_status}, rationale={rationale_status}"
+        )
 
     if all_rationales_complete:
         total += bonus
-    return total, incomplete
+    return total, incomplete, details
 
 
 def build_parser() -> argparse.ArgumentParser:
@@ -131,14 +174,29 @@ def main() -> int:
     try:
         rubric = read_json(args.rubric)
         decisions, rationales = parse_answer(args.answer)
-        total, incomplete = score(rubric, decisions, rationales)
+        question_options = parse_question_options(args.answer.parent / "QUESTIONS.md")
+        total, incomplete, details = score(rubric, decisions, rationales, question_options)
         maximum = int(rubric["maximum_score"])
         passing = int(rubric["passing_score"])
+        model = rubric["scoring_model"]
+        calculated_maximum = len(rubric["dimensions"]) * (
+            int(model["correct_choice_points_per_decision"])
+            + int(model["substantive_rationale_points_per_decision"])
+        ) + int(model["complete_response_bonus"])
+        if calculated_maximum != maximum:
+            raise ScoringError(
+                f"rubric scoring weights total {calculated_maximum}, expected {maximum}"
+            )
+        if not 0 < passing <= maximum:
+            raise ScoringError("passing_score must be between 1 and maximum_score")
     except (KeyError, TypeError, ValueError, ScoringError) as exc:
         print(f"ERROR: {exc}", file=sys.stderr)
         return 3
 
     print(f"Score: {total}/{maximum} (passing: {passing})")
+    print("Decision results:")
+    for detail in details:
+        print(f"  - {detail}")
     if incomplete:
         print("EXPECTED_CONCEPTUAL_RESPONSE_INCOMPLETE: complete every decision and rationale.")
         for item in incomplete:

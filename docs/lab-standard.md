@@ -1,8 +1,8 @@
 # Terraform Professional Lab Standard
 
-Status: Phase 1 baseline, frozen after the read-only audit.
+Status: Starter Standard v1, frozen after the Phase 5 pilot quality gate.
 
-This document defines the target contract for future migration phases. It does not certify any current lab as compliant. A later change to this standard requires a concrete defect, a recorded reason, the affected lab list, and remediation notes in the migration report.
+This document defines the frozen contract for future migration phases. The Phase 5 migration report records the five pilots certified against this version. A later change to this standard requires a concrete defect, a recorded reason, the affected lab list, and remediation notes in the migration report.
 
 ## 1. Goals
 

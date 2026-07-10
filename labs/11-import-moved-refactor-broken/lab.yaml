@@ -47,8 +47,7 @@
     "starter/import-stage/versions.tf",
     "starter/refactor-stage/versions.tf",
     "starter/modules",
-    "scripts/seed_state.py",
-    "scripts/verify_refactor.py",
+    "scripts",
     "tests"
   ]
 }

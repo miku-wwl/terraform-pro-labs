@@ -325,3 +325,104 @@ No AWS or HCP Terraform credentials were requested or read. No cloud provider wa
 - Rationale scoring verifies non-placeholder completeness rather than semantic equivalence. Correct structured decisions carry the decisive score, while human review remains valuable for explanation quality.
 - The static backend parser is intentionally scoped to this lab's one-line assignments and approved static fields. It is protected by explicit dynamic-expression and hardcoding negative controls but is not a general-purpose HCL parser.
 - HCP Terraform feature availability can vary by product edition and can change over time; the scenario was checked against HashiCorp's current official run-mode, run-trigger, workspace-setting, and permission documentation on the migration date.
+
+## Phase 5 — Pilot Quality Gate
+
+Migration date: 2026-07-10
+
+Working branch: `main`
+
+Scope: quality review and repair of Labs 01, 07, 11, 25, and 31; shared `labctl`
+behavior; the root usage note; and migration documentation. No new lab was added or migrated, and
+the other 27 lab directories were not modified.
+
+### Gate defects found and fixed
+
+The five independent starter gates already failed at their declared stages with their declared
+markers. The required repository aggregate command did not exist: `python tools/labctl.py check
+--all` exited from argument parsing because `check` required a positional lab ID.
+
+`tools/labctl.py` now:
+
+- accepts exactly one lab ID or `--all`;
+- discovers only labs with a valid manifest, so the current aggregate contains exactly the five
+  migrated pilots and skips all legacy inputs;
+- recreates only a state-refactor lab's declared generated state before its aggregate check, then
+  runs the manifest seed command;
+- reports a per-lab and aggregate result;
+- rejects duplicate manifest paths, directory-valued editable paths, and any overlap between
+  editable and protected paths.
+
+Lab 11's manifest now protects its whole `scripts/` directory, matching its README rather than
+enumerating only the two current scripts.
+
+Lab 25's scorer now validates option IDs against `QUESTIONS.md`, verifies that rubric weights total
+the published maximum and that the threshold is valid, and reports each decision's choice and
+rationale status. This preserves answer isolation while making an incomplete or below-threshold
+result actionable. The scenario decisions were rechecked against current HashiCorp documentation
+for [run modes](https://developer.hashicorp.com/terraform/cloud-docs/workspaces/run/modes-and-options),
+[run triggers](https://developer.hashicorp.com/terraform/cloud-docs/workspaces/settings/run-triggers),
+[workspace permissions](https://developer.hashicorp.com/terraform/cloud-docs/users-teams-organizations/permissions/workspace),
+and [workspace settings](https://developer.hashicorp.com/terraform/cloud-docs/workspaces/settings).
+
+### Independent pilot results
+
+| Lab | Starter gate | Canonical solution run 1 | Reset proof | Canonical solution run 2 |
+| --- | --- | --- | --- | --- |
+| 01 | PASS — `EXPECTED_GUARD_MISSING` at test | PASS — destroy plan blocked by `prevent_destroy` | PASS — lab-owned artifacts/results removed | PASS — same lifecycle diagnostic reproduced |
+| 07 | PASS — `EXPECTED_GUARDS_INCOMPLETE` at test | PASS — 4 Terraform Test runs passed | PASS — root/starter test caches and results removed | PASS — 4 passed, 0 failed again |
+| 11 | PASS — `EXPECTED_STATE_REFACTOR_INCOMPLETE` at state test | PASS — 1 import, 0 add/destroy; exact move; final no-op | PASS — `.lab-state/` absent after reset, then reseeded | PASS — addresses, identity, zero create/delete, and no-op reproduced |
+| 25 | PASS — `EXPECTED_CONCEPTUAL_RESPONSE_INCOMPLETE` at scoring | PASS — 100/100 with every choice and rationale reported | PASS — results removed and response artifact preserved | PASS — 100/100 again |
+| 31 | PASS — `EXPECTED_PARTIAL_BACKEND_INCOMPLETE` at static test | PASS — offline init, validate, negative controls, examples, and backend boundary | PASS — synthetic `.terraform/terraform.tfstate` metadata and directory removed | PASS — all offline checks passed again |
+
+Canonical changes were applied only transiently. The six edited learner files were restored and
+their SHA-256 hashes matched the pre-solution values before final starter regression.
+
+### Aggregate, leakage, and consistency gates
+
+`python tools/labctl.py check --all` ran exactly Labs 01, 07, 11, 25, and 31 and reported all five
+starter gates passed as expected failures. Lab 11 was reset and freshly seeded by the aggregate
+workflow.
+
+The Phase 5 static consistency scan confirmed:
+
+- all five READMEs contain every Starter Standard section, expected marker, validation command,
+  and manifest-declared editable/protected path;
+- manifests declare no cloud credentials or billable resources and have no editable/protected
+  overlap;
+- no pilot test relies on output non-null/existence checks;
+- no answer-bearing filename, canonical `prevent_destroy`, import block, moved block, or completed
+  conceptual answer remains in a starter;
+- TODO comments describe behavior without containing a complete implementation expression.
+
+### Reset and cloud safety
+
+All five pilots were reset between canonical runs and passed on the second run. Lab 31 used an
+ignored synthetic backend metadata sentinel to verify deletion without initializing S3. Terraform
+apply occurred only for Lab 01's temporary built-in `terraform_data` state and Lab 11's isolated
+logical `random_id` state. No AWS provider, credential lookup, real S3 initialization, HCP
+Terraform request, cloud API call, or billable resource was used.
+
+### Items not verified
+
+- Linux execution: **NOT VERIFIED**. Path handling uses `pathlib`, subprocess argument lists, and
+  lab-relative manifest paths, but this gate ran on Windows and no Linux runner was available.
+- Terraform versions other than v1.14.0: **NOT VERIFIED**. The current host supplied only Terraform
+  v1.14.0; the manifests permit the documented compatible ranges.
+- Real HCP Terraform organization behavior: **NOT VERIFIED by design**. Lab 25 is a local
+  conceptual scorer.
+- Real S3 backend initialization: **NOT VERIFIED by design**. Lab 31's default gate is offline and
+  the live path requires explicit learner authorization and resources.
+- Remote-service import behavior: **NOT VERIFIED by design**. Lab 11 intentionally uses the local
+  logical `random_id` provider to make import and address movement deterministic.
+
+### Remaining risks
+
+- Lab 25's public option set and comparison digests can be inspected or brute-forced. The scorer
+  avoids a plaintext answer key, but blind practice still depends on respecting protected paths.
+- Lab 25 grades rationale completeness rather than semantic prose quality; human review remains
+  useful for reasoning depth.
+- Lab 31's checker is deliberately scoped to this lab's static one-line assignments and is not a
+  general HCL parser; its negative fixtures cover the prohibited expression and hardcoding cases.
+- The other 27 labs remain legacy inputs and are intentionally excluded from `check --all` until
+  separately migrated under Starter Standard v1.
