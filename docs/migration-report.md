@@ -530,6 +530,144 @@ observed summary was `Passed: 01, 02, 07, 10, 11, 16, 18, 25, 31` and `Failed: n
 - Canonical implementations were verified transiently and are not retained on the learner-facing
   branch; they must remain isolated in a future solution/grader branch.
 
+## Phase 9 - Provider and AWS Wiring Batch A
+
+Migration date: 2026-07-11
+
+Working branch: `main`
+
+Scope: Labs 06, 08, 09, and 14 plus their matrix and migration-report records. No other lab,
+shared tool, frozen standard, CI configuration, provider-mirror subsystem, or later-phase artifact
+was modified.
+
+### Execution-mode classification
+
+| Lab | Default mode | Live mode retained |
+| --- | --- | --- |
+| 06 | `aws-mock` | none |
+| 08 | `aws-mock` | none |
+| 09 | `aws-mock` | none |
+| 14 | `aws-mock` | none |
+
+All four labs require only the AWS provider schema. They do not require credentials and do not run
+an AWS plan or apply. No `aws-plan` or `aws-live-optional` path was necessary for these learning
+objectives.
+
+### Migration design
+
+- Lab 06 is now distinct from Lab 14. It retains a valid protected `required_providers` declaration
+  and focuses on root alias selection plus authentication troubleshooting. The starter routes both
+  region reads through the default mock provider and pins a nonexistent local profile. Distinct
+  mock data values prove provider selection, while a protected source check rejects pinned profile,
+  key, secret, or token authentication and verifies the provider source/version declaration.
+- Lab 08 removes the live AMI lookup and uses a deterministic plan-only AMI ID. The starter keeps
+  exact EC2 trust and scoped S3 permission documents but breaks the managed-policy-to-role and
+  profile-to-EC2 links. Tests inspect policy semantics, the complete role/policy attachment/profile/
+  instance chain, alternate prefix propagation, and invalid naming. A plan-time mock ARN keeps the
+  real policy reference assertion known without weakening it.
+- Lab 09 replaces the template-polluted S3 documentation and keeps an SG shell with separate AWS
+  ingress/egress resource types. The starter creates zero ingress instances and limits egress to
+  TCP 443. Tests inspect exact independent rule keys, ports, CIDRs, SG references, all-protocol
+  egress, empty-ingress behavior, and invalid ports. A plan-time mock SG ID makes graph-reference
+  comparisons deterministic.
+- Lab 14 now contains a protected child module that declares `configuration_aliases` and uses both
+  default and secondary provider configurations. The root starter maps both child names to its
+  default provider. Distinct root mock providers prove whether the module `providers` mapping sends
+  the aliased configuration across the module boundary.
+
+Terraform v1.14.0 and AWS provider v6.54.0 executed the `mock_provider`, aliased mock provider,
+`mock_data`, `mock_resource`, and `override_during = plan` syntax used by this batch.
+
+### Starter gates
+
+Each lab was run with:
+
+```text
+python tools/labctl.py reset <lab-id>
+python tools/labctl.py check <lab-id>
+```
+
+All valid starter runs passed format, initialization, and validation before failing at the intended
+mock test stage:
+
+| Lab | Marker | Observed target failure |
+| --- | --- | --- |
+| 06 | `EXPECTED_PROVIDER_ALIAS_AUTH_INCOMPLETE` | secondary region read resolved through the default provider; auth profile pin remained |
+| 08 | `EXPECTED_IAM_EC2_CHAIN_INCOMPLETE` | policy attachment named a different role and EC2 had no instance profile |
+| 09 | `EXPECTED_SEPARATE_SG_RULES_INCOMPLETE` | ingress resource map was empty and egress remained TCP 443 |
+| 14 | `EXPECTED_MODULE_PROVIDER_MAPPING_INCOMPLETE` | child default and secondary names both received the root default provider |
+
+During one grouped final rerun, fresh initialization for Labs 08 and 09 timed out querying the
+Terraform Registry. Those init failures were rejected as starter evidence. Individual retries later
+reached and recorded the expected test markers. No mirror, committed platform lock set, or new
+`labctl` policy was introduced because that would add system complexity beyond this phase.
+
+An external commit made while checks were active captured eight generated, Windows-only lock files
+from the lab roots and starter directories. They contained only a locally calculated checksum and
+were already classified as reset-owned artifacts by `labctl`; retaining them made a documented
+reset dirty the tracked worktree and did not provide cross-platform reproducibility. They were
+removed from the final Phase 9 diff instead of adding lock-file exceptions or new reset complexity.
+
+### Canonical solution gates
+
+Canonical changes were applied transiently and removed after verification. Each lab passed
+`python tools/labctl.py check <lab-id> --mode solution` twice with reset and clean status between
+runs:
+
+- Lab 06: 1 mock run proved different provider identities; required provider and portable auth
+  source checks passed.
+- Lab 08: 3 mock runs passed exact trust/permission semantics, the complete IAM-to-EC2 chain,
+  alternate input propagation, and invalid input.
+- Lab 09: 3 mock runs passed exact independent ingress/egress behavior, empty ingress, invalid
+  port handling, and the no-inline-rule source check.
+- Lab 14: 1 mock run proved the child received distinct default and secondary root providers.
+
+### Reset, repeatability, and regression
+
+Between canonical runs, reset removed root/starter initialization directories, generated lock
+files, and recorded results. Status reported `Generated artifacts: 0` and no recorded results for
+all four labs before their second canonical runs.
+
+After starter restoration, all four expected markers were reproduced. The aggregate starter gate
+was run with:
+
+```text
+python tools/labctl.py check --all
+```
+
+Because Phase 10 was committed externally while this verification was running, the aggregate used
+the then-current repository and covered 25 migrated labs. It reported
+`Passed: 01, 02, 06, 07, 08, 09, 10, 11, 14, 15, 16, 17, 18, 20, 21, 22, 23, 24, 25, 27, 28, 29, 30, 31, 32`
+and `Failed: none`. This Phase 9 work did not modify the Phase 10 lab sources.
+
+### Cloud safety
+
+No AWS credential was requested or read. No real AMI, VPC, account, IAM, EC2, or security-group
+lookup occurred. No AWS plan or apply, cloud API request, or billable resource was executed.
+
+### Items not verified
+
+- Linux execution: **NOT VERIFIED**. This phase ran on Windows only. Mock HCL is portable, and
+  scripts use `pathlib` plus subprocess argument lists, but no Linux runner was available.
+- Terraform versions other than v1.14.0: **NOT VERIFIED**. Manifests permit `>= 1.6, < 2.0`, but
+  only v1.14.0 was executed.
+- AWS provider versions other than v6.54.0: **NOT VERIFIED**. Tests executed against the version
+  available in the current shared cache.
+- Real AWS service behavior: **NOT VERIFIED by design**. These labs test provider schema, Terraform
+  graph, policy data, rule configuration, and provider mapping through mocks.
+
+### Remaining risks
+
+- Fresh AWS provider initialization requires Terraform Registry availability or a pre-populated
+  installation cache. One transient timeout occurred and was handled by isolated retries; no PASS
+  claim relies on the timeout run.
+- Mock plans do not validate AWS-side authorization, quotas, AMI availability, default VPC state,
+  or eventual consistency. Those behaviors are outside these wiring objectives.
+- Public tests reveal expected graph shapes and scenario values but not complete canonical HCL
+  expressions. Blind practice still depends on respecting protected paths.
+- Canonical implementations were verified transiently and are not retained on the learner-facing
+  branch; they must remain isolated in a future solution/grader branch.
+
 ## Phase 10 - AWS, Constraints, and Terraform Test Batch B
 
 Migration date: 2026-07-11
