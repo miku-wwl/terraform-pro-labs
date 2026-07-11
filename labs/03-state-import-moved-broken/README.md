@@ -1,65 +1,85 @@
-# Lab 03 — State, Import, and Moved Blocks
+# Lab 03 — Import a Collection and Refactor into Module Instances
 
-Practice bringing existing infrastructure under Terraform management and refactoring it safely.
+## Scenario
 
-## Lab metadata
+Two locally generated service identities exist outside the learner state. Adopt both at their legacy keyed root addresses, then refactor them into matching child-module instances without changing either identity.
 
-- **Lab type:** `refactor`
-- **Tier:** `operations-state`
-- **Difficulty:** `hard`
-- **Success mode:** `plan`
-- **Estimated time:** `30 minutes`
-- **AWS cost risk:** `low`
-- **State mode:** `managed-refactor`
+## Skills tested
 
-> [!IMPORTANT]
-> This is a managed-refactor lab.
->
-> Assume the infrastructure already exists and is already Terraform-managed.
-> Your job is to change the configuration shape safely without introducing unintended destroy/create actions.
-> The goal is to finish with a clean no-op `terraform plan`.
+- Declarative import with keyed instances
+- Exact state-address inspection
+- `moved` blocks from root instances to module instances
+- Plan JSON inspection and final no-op proof
 
-## What this lab is testing
-- declarative import blocks
-- moved blocks
-- refactoring a flat config into a child module
-- finishing with a no-op plan
+## Difficulty and estimated time
+
+- Difficulty: hard
+- Estimated time: 40 minutes
+
+## Execution mode
+
+Isolated local state under `.lab-state/` using the logical HashiCorp `random` provider.
+
+## Cloud credentials required
+
+None. No cloud provider or remote service is used.
+
+## Cost risk
+
+None.
+
+## Starting state
+
+`python tools/labctl.py seed 03` applies `bootstrap/old-config`, verifies two old addresses, captures their import identifiers, and releases only those bootstrap bindings. The protected verifier then uses one fresh learner state across `starter/import-stage` and `starter/refactor-stage`.
+
+## Files allowed to edit
+
+- `starter/import-stage/main.tf`
+- `starter/refactor-stage/main.tf`
+
+## Files not allowed to edit
+
+- `lab.yaml`, `bootstrap/`, `starter/modules/`, version files, `scripts/`, and `tests/`
 
 ## Tasks
-- import an existing bucket
-- refactor into a child module
-- use a moved block
-- finish with a clean plan
 
+1. Seed the lab and inspect both old keyed addresses.
+2. Declaratively import every supplied identifier at its corresponding root address.
+3. Refactor both objects into the supplied keyed module instances.
+4. Preserve both identities and finish with a no-op plan.
 
+## Constraints
 
+- Do not hardcode generated identifiers or copy state files.
+- Do not use imperative `terraform import` or `terraform state mv` as the solution.
+- Do not change keys, byte lengths, module names, or resource names.
+
+## Expected initial failure
+
+The untouched starter passes formatting, initialization, and validation, then reports `EXPECTED_COLLECTION_REFACTOR_INCOMPLETE` because it proposes creating both identities instead of importing them.
+
+## Validation commands
+
+```text
+python tools/labctl.py reset 03
+python tools/labctl.py seed 03
+python tools/labctl.py status 03
+python tools/labctl.py check 03
+python tools/labctl.py check 03 --mode solution
+```
 
 ## Success criteria
-- invalid input values are rejected with variable validation where appropriate
-- unsafe configuration is blocked with a precondition where appropriate
-- advisory quality concerns are expressed with a check block where appropriate
-- `terraform validate` passes
-- `terraform plan` passes for the expected scenario(s)
 
-## How to work this lab
+- Import plan contains exactly the two protected old addresses and no create/delete action.
+- Imported state and identifiers exactly match the fixture.
+- Refactor plan records both exact old-to-module address mappings with no create/delete action.
+- Final state contains only the two target module addresses, preserves both identifiers, and plans no changes.
 
-This repository uses a single public working branch:
+## Reset instructions
 
-- `main` — broken starting point
+`python tools/labctl.py reset 03` removes only Lab 03 `.lab-state/`, Terraform artifacts, and recorded results.
 
-Create your own working branch from `main`:
+## Limited hints
 
-```bash
-git switch -c my-solution
-```
-
-When you are done, run the normal Terraform workflow for the lab:
-
-```bash
-terraform init
-terraform validate
-terraform plan
-```
-
-## Why this lab matters
-This is a high-value Terraform operations skill: change configuration structure without destroying existing infrastructure.
+- The import collection and resource collection should share stable keys.
+- A move between keyed instances must identify an unambiguous source and destination.

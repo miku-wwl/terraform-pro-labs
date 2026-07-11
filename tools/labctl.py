@@ -65,6 +65,11 @@ REQUIRED_BACKEND = {
     "real_init_opt_in": bool,
 }
 
+REQUIRED_WORKSPACE = {
+    "generated_paths": list,
+    "owned_names": list,
+}
+
 
 class ManifestError(ValueError):
     """Raised when a lab manifest does not satisfy the supported schema."""
@@ -237,6 +242,35 @@ def load_manifest(lab_dir: Path) -> dict[str, Any]:
                     f"{lab_dir.name}.backend.init_metadata_paths: unsafe path '{relative}'"
                 )
 
+    if manifest["type"] == "workspace":
+        if "workspace" not in manifest or not isinstance(manifest["workspace"], dict):
+            raise ManifestError(f"{lab_dir.name}: workspace labs require a workspace mapping")
+        workspace = manifest["workspace"]
+        require_fields(workspace, REQUIRED_WORKSPACE, f"{lab_dir.name}.workspace")
+        if not workspace["generated_paths"] or not all(
+            isinstance(item, str) for item in workspace["generated_paths"]
+        ):
+            raise ManifestError(
+                f"{lab_dir.name}.workspace.generated_paths must be a non-empty list"
+            )
+        for relative in workspace["generated_paths"]:
+            relative_path = Path(relative)
+            if (
+                relative_path.is_absolute()
+                or ".." in relative_path.parts
+                or relative_path in (Path("."), Path(""))
+            ):
+                raise ManifestError(
+                    f"{lab_dir.name}.workspace.generated_paths: unsafe path '{relative}'"
+                )
+        if not workspace["owned_names"] or not all(
+            isinstance(item, str) and item and item != "default"
+            for item in workspace["owned_names"]
+        ):
+            raise ManifestError(
+                f"{lab_dir.name}.workspace.owned_names must contain non-default workspace names"
+            )
+
     return manifest
 
 
@@ -277,6 +311,8 @@ def generated_artifacts(lab_dir: Path, manifest: dict[str, Any]) -> list[Path]:
         candidates.extend(lab_dir / relative for relative in manifest["state"]["generated_paths"])
     if manifest["type"] == "backend-remote-state":
         candidates.extend(lab_dir / relative for relative in manifest["backend"]["init_metadata_paths"])
+    if manifest["type"] == "workspace":
+        candidates.extend(lab_dir / relative for relative in manifest["workspace"]["generated_paths"])
     existing = {path for path in candidates if path.exists()}
     return sorted(existing, key=lambda path: len(path.parts), reverse=True)
 

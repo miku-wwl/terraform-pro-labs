@@ -530,6 +530,122 @@ observed summary was `Passed: 01, 02, 07, 10, 11, 16, 18, 25, 31` and `Failed: n
 - Canonical implementations were verified transiently and are not retained on the learner-facing
   branch; they must remain isolated in a future solution/grader branch.
 
+## Phase 11 - State and Cross-Stack Batch A
+
+Migration date: 2026-07-11
+
+Working branch: `main`
+
+Scope: Labs 03, 04, and 05; their matrix and migration-report records; and the minimum `labctl`
+workspace manifest/reset support required by Lab 05. Labs 11 and 31 were exercised only as state
+pilot regressions. No other lab, frozen standard, CI configuration, or later-phase artifact was
+modified.
+
+### Migration design
+
+- Lab 03 now seeds two keyed `random_id` identities in protected bootstrap state, verifies their
+  legacy addresses, captures their import identifiers, and releases the bootstrap bindings. The
+  learner first performs collection-driven declarative import at both root addresses, then maps
+  each instance to its matching keyed child-module address. This differs from Lab 11's single
+  identity and two-stage scalar refactor while retaining its proven isolated-state pattern.
+- Lab 04 now has a protected local network producer and a separate learner consumer. The starter
+  deliberately uses a copied network value and leaves an init-time key in an optional S3 backend
+  declaration. The protected verifier self-tests its dynamic-backend negative control, creates a
+  local producer fixture, inspects exact producer/consumer addresses and output values, rejects
+  copied values, and proves the final consumer plan is no-op. Real S3 initialization remains an
+  explicitly optional extension with credential-free placeholders.
+- Lab 05 now creates `dev` and `prod` producer and consumer workspaces only inside copied runtime
+  roots under the lab-owned `.lab-state/` directory. The starter consumes local remote state but
+  routes every workspace to development and omits the production `t3.micro` guardrail. The
+  verifier checks exact owned workspace sets, per-workspace state addresses, matching output
+  routing, absence of destroy actions, final no-op plans, and the production failure diagnostic.
+- `tools/labctl.py` now validates the frozen standard's workspace-specific `generated_paths` and
+  non-default `owned_names` fields and includes declared workspace runtime paths in status/reset
+  discovery. This is the minimum tooling needed to make Lab 05 reset explicit and bounded; the
+  frozen lab standard itself did not change.
+
+### Starter gates
+
+For Labs 03, 04, and 05, reset was followed by the documented starter check. Lab 03 was seeded
+before checking. Every starter passed formatting, offline initialization where applicable, and
+validation before the intended protected behavior failure:
+
+| Lab | Marker | Observed target failure |
+| --- | --- | --- |
+| 03 | `EXPECTED_COLLECTION_REFACTOR_INCOMPLETE` | both keyed identities were planned as creates instead of imports |
+| 04 | `EXPECTED_BACKEND_CROSS_STACK_INCOMPLETE` | the optional backend retained a key and the consumer used copied values without a remote-state address |
+| 05 | `EXPECTED_WORKSPACE_FLOW_INCOMPLETE` | the prod consumer selected the dev producer state and dev environment label |
+
+After canonical verification was removed, all three starter markers and failure categories were
+reproduced.
+
+### Canonical solution gates
+
+Canonical edits were applied transiently and removed after verification. Each lab passed
+`python tools/labctl.py check <lab-id> --mode solution` twice, with reset and clean status between
+runs:
+
+- Lab 03 imported exactly `random_id.legacy["api"]` and `random_id.legacy["worker"]` without
+  create/delete actions; moved them exactly to the matching `module.record[...].random_id.this`
+  addresses; preserved both identifiers; and finished no-op.
+- Lab 04 kept only static shared backend safety settings, consumed the protected local producer
+  output through `terraform_remote_state`, held the exact producer and consumer addresses, created
+  no unexpected resource, and finished no-op.
+- Lab 05 kept exactly `default`, `dev`, and `prod` in both runtime roots; routed each consumer to
+  matching producer state; planned no destroys; finished both workspace reruns no-op; and rejected
+  `t3.micro` in prod with the required diagnostic.
+
+### Reset, repeatability, and pilot regression
+
+Between canonical runs, `python tools/labctl.py reset <lab-id>` removed runtime state,
+initialization directories, lock files, plans, workspace state trees, and recorded results.
+`python tools/labctl.py status <lab-id>` reported `Generated artifacts: 0` and no recorded results
+for all three labs before the second run. Lab 05 never selected a workspace in the learner source
+directory or any unrelated Terraform root.
+
+The established state/backend pilots were reset and rerun as untouched starters:
+
+- Lab 11 reproduced `EXPECTED_STATE_REFACTOR_INCOMPLETE` after a fresh isolated seed.
+- Lab 31 reproduced `EXPECTED_PARTIAL_BACKEND_INCOMPLETE` after format, offline init, validation,
+  checker negative controls, and placeholder validation passed.
+
+The repository-wide learner-starter regression then ran with
+`python tools/labctl.py check --all`. It covered 28 migrated labs and reported
+`Passed: 01, 02, 03, 04, 05, 06, 07, 08, 09, 10, 11, 14, 15, 16, 17, 18, 20, 21, 22, 23, 24, 25, 27, 28, 29, 30, 31, 32`
+and `Failed: none`.
+
+### Cloud safety
+
+No AWS provider, credentials, data lookup, backend connection, cloud API, or real-cloud apply was
+used. Terraform apply was limited to the local logical `random_id` fixture in Lab 03 and built-in
+`terraform_data` state in Labs 04 and 05. The optional Lab 04 S3 files contain placeholders only
+and were inspected offline.
+
+### Items not verified
+
+- Linux execution: **NOT VERIFIED**. This phase ran on Windows only. New scripts use `pathlib`,
+  subprocess argument lists, and no shell-specific commands.
+- Terraform versions other than v1.14.0: **NOT VERIFIED**. Only Terraform v1.14.0 was executed;
+  Lab 03 permits `>= 1.7, < 2.0`, Lab 04 permits `>= 1.10, < 2.0`, and Lab 05 permits
+  `>= 1.6, < 2.0`.
+- Random provider versions other than v3.9.0: **NOT VERIFIED**. That was the version selected from
+  the configured cache for Lab 03.
+- Real S3 backend initialization and remote backend migration: **NOT VERIFIED by design**. Lab 04
+  keeps that path optional and outside default validation.
+
+### Remaining risks
+
+- Lab 03 requires registry access or a populated random-provider cache for initialization, though
+  it never contacts a provider service.
+- The backend inspectors are intentionally scoped to the documented one-block exercise and are not
+  general-purpose HCL parsers; protected negative controls cover the targeted dynamic and
+  hardcoded-init defects.
+- Workspace safety is proven for verifier-created runtime copies and declared owned names; learners
+  who manually run workspace commands outside the documented workflow remain responsible for that
+  unrelated root.
+- Canonical implementations were verified transiently and are not retained on the learner-facing
+  branch; they must remain isolated in a future solution/grader branch.
+
 ## Phase 9 - Provider and AWS Wiring Batch A
 
 Migration date: 2026-07-11

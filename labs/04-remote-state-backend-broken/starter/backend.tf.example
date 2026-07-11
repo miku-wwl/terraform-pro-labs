@@ -1,0 +1,8 @@
+# Optional remote-backend declaration. It is inspected offline and is never initialized by the default lab.
+terraform {
+  backend "s3" {
+    encrypt      = true
+    use_lockfile = true
+    key          = "network/dev.tfstate"
+  }
+}

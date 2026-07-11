@@ -1,0 +1,4 @@
+# Placeholder only. Never use this file unchanged for a real initialization.
+bucket = "REPLACE_WITH_LAB04_STATE_BUCKET"
+key    = "network/dev.tfstate"
+region = "us-east-1"
