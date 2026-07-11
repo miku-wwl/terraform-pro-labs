@@ -1,82 +1,89 @@
-# Lab 19 — count to for_each Refactor
+# Lab 19 — Preserve State from `count` to `for_each`
 
-Practice refactoring from count-based resources to stable for_each keys without unintended recreation.
+## Scenario
 
-## Lab metadata
+Three local bucket records already exist at count-indexed state addresses. Refactor them to stable
+logical keys without replacing any object or changing its stored values.
 
-- **Lab type:** `refactor`
-- **Tier:** `operations-state`
-- **Difficulty:** `hard`
-- **Success mode:** `plan`
-- **Estimated time:** `30 minutes`
-- **AWS cost risk:** `low`
-- **State mode:** `managed-refactor`
+## Skills tested
 
-> [!IMPORTANT]
-> This is a managed-refactor lab.
->
-> Assume the infrastructure already exists and is already Terraform-managed.
-> Your job is to change the configuration shape safely without introducing unintended destroy/create actions.
-> The goal is to finish with a clean no-op `terraform plan`.
+- count-index and `for_each` addressing
+- exact multi-instance `moved` mappings
+- plan JSON and state-list inspection
+- identity-preserving state refactors
 
-## What this lab is testing
-- count vs for_each
-- stable resource addressing
-- moved blocks
-- state-aware refactoring
-- finishing with a no-op plan
+## Difficulty and estimated time
+
+Hard, about 35 minutes.
+
+## Execution mode
+
+Seeded, isolated local state using built-in `terraform_data`.
+
+## Cloud credentials required
+
+None.
+
+## Cost risk
+
+None.
+
+## Starting state
+
+`python tools/labctl.py seed 19` applies the protected old configuration and creates
+`terraform_data.bucket[0]`, `[1]`, and `[2]`. The starter already has the desired keyed resources
+but no state-transition declarations.
+
+## Files allowed to edit
+
+- `starter/main.tf`
+
+## Files not allowed to edit
+
+- `lab.yaml`, `bootstrap/`, `scripts/`, and `tests/`
+- `starter/versions.tf`
 
 ## Tasks
-- identify the current count-based resource addresses
-- refactor the configuration to use stable for_each keys
-- preserve state continuity with moved blocks
-- avoid unintended destroy or recreate actions
-- finish with a clean no-op plan
 
-## Starting assumptions
-- the starting configuration already manages real infrastructure with count-based addresses
-- the current configuration shape is functional but brittle
-- the goal is to improve address stability without changing the real infrastructure
+1. Preserve index 0 as key `logs`, index 1 as `assets`, and index 2 as `archive`.
+2. Produce zero create/delete actions during the refactor.
+3. Finish with only the three keyed addresses and a no-op plan.
 
-## Target end state
-- resources are addressed with stable for_each keys instead of count indexes
-- state continuity is preserved across the refactor
-- no unintended destroy or recreate appears in the plan
-- the final terraform plan is a no-op
+## Constraints
 
-## Recommended workflow
-- start from the existing count-based configuration on main
-- identify the old count indexes and the new logical keys
-- refactor the resources to use for_each with stable keys
-- add moved blocks to preserve address continuity
-- verify that no unintended destroy or recreate appears in the plan
-- finish with a clean no-op terraform plan
+Do not delete or recreate state, change record values, use `terraform state mv`, or return to
+`count`. Preserve the protected old configuration as the source fixture.
+
+## Expected initial failure
+
+After a fresh seed, `python tools/labctl.py check 19` reports
+`EXPECTED_COUNT_TO_FOREACH_REFACTOR_INCOMPLETE`; the starter plans indexed deletes and keyed creates.
+
+## Validation commands
+
+```text
+python tools/labctl.py reset 19
+python tools/labctl.py seed 19
+python tools/labctl.py check 19
+```
 
 ## Success criteria
-- the resources are refactored from count to for_each safely
-- moved blocks preserve state continuity
-- no unintended destroy or recreate is introduced
-- the final terraform plan is a no-op
 
-## How to work this lab
+- all three old addresses are present before the refactor;
+- plan JSON contains the exact 0→logs, 1→assets, and 2→archive no-op mappings;
+- no create or delete action occurs;
+- final state contains exactly the three logical-key addresses;
+- values remain unchanged and the final plan is no-op.
 
-This repository uses a single public working branch:
+## Reset instructions
 
-- `main` — broken starting point
-
-Create your own working branch from `main`:
-
-```bash
-git switch -c my-solution
+```text
+python tools/labctl.py reset 19
 ```
 
-When you are done, run the normal Terraform workflow for the lab:
+Reset deletes only Lab 19's `.lab-state`, generated initialization/plan files, and results.
 
-```bash
-terraform init
-terraform validate
-terraform plan
-```
+## Limited hints
 
-## Why this lab matters
-The Terraform Pro exam expects you to understand when count becomes brittle and how to migrate safely to stable for_each addressing.
+Terraform needs a separate explicit address transition for every old instance. The order of the
+map in source is not a substitute for declaring those transitions.

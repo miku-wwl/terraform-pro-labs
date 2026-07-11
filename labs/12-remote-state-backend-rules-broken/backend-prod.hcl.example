@@ -1,0 +1,3 @@
+bucket = "REPLACE_WITH_LAB12_CONSUMER_STATE_BUCKET"
+key    = "consumers/prod/terraform.tfstate"
+region = "us-east-1"

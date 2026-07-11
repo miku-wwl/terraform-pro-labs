@@ -1,0 +1,34 @@
+{
+  "schema_version": 1,
+  "id": 19,
+  "title": "Preserve State from count to for_each",
+  "type": "state-refactor",
+  "tier": "operations-state",
+  "difficulty": "hard",
+  "estimated_minutes": 35,
+  "execution": {
+    "mode": "local-state",
+    "terraform_version": ">= 1.6, < 2.0",
+    "requires_cloud_credentials": false,
+    "creates_billable_resources": false,
+    "backend": "isolated-local"
+  },
+  "validation": {
+    "starter_expected_result": "fail",
+    "expected_failure_stage": "test",
+    "expected_error_category": "count-to-foreach-address-mapping",
+    "expected_failing_test": "scripts/verify_refactor.py",
+    "expected_failure_marker": "EXPECTED_COUNT_TO_FOREACH_REFACTOR_INCOMPLETE",
+    "solution_expected_result": "pass",
+    "commands": [
+      {"name": "format", "stage": "format", "argv": ["terraform", "fmt", "-check", "-recursive"]},
+      {"name": "state refactor behavior", "stage": "test", "argv": ["{python}", "../scripts/verify_refactor.py"]}
+    ]
+  },
+  "state": {
+    "seed_argv": ["{python}", "scripts/seed_state.py"],
+    "generated_paths": [".lab-state"]
+  },
+  "editable_paths": ["starter/main.tf"],
+  "protected_paths": ["lab.yaml", "bootstrap", "starter/versions.tf", "scripts", "tests"]
+}

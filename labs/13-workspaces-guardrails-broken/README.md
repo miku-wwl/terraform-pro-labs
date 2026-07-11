@@ -1,59 +1,90 @@
-# Lab 13 — Workspaces and Environment Guardrails
+# Lab 13 — Workspace-Aware Behavior and Production Guardrails
 
-Practice using terraform.workspace for environment-aware behavior and adding guardrails for higher-risk environments.
+## Scenario
 
-## Lab metadata
+One local root is deliberately reused across dev, staging, and prod workspaces. Configuration must
+select workspace-specific settings, while production blocks undersized capacity and unattended
+apply behavior.
 
-- **Lab type:** `correction`
-- **Tier:** `operations-state`
-- **Difficulty:** `medium`
-- **Success mode:** `plan`
-- **Estimated time:** `25 minutes`
-- **AWS cost risk:** `none`
-- **State mode:** `stateless`
+## Skills tested
 
+- `terraform.workspace`
+- workspace-isolated local state
+- environment-aware value selection
+- lifecycle preconditions as production guardrails
 
-## What this lab is testing
-- terraform.workspace
-- environment-aware configuration
-- preconditions
-- prod safety guardrails
+## Difficulty and estimated time
+
+Medium, about 30 minutes.
+
+## Execution mode
+
+Isolated local workspaces created only in a verifier-owned runtime copy.
+
+## Cloud credentials required
+
+None.
+
+## Cost risk
+
+None. The lab uses only built-in `terraform_data`.
+
+## Starting state
+
+The starter always selects dev settings and its production precondition is permissive. No learner
+source workspace is selected or changed by the verifier.
+
+## Files allowed to edit
+
+- `starter/main.tf`
+
+## Files not allowed to edit
+
+- `lab.yaml`
+- `starter/versions.tf`
+- `scripts/` and `tests/`
 
 ## Tasks
-- replace hardcoded environment assumptions with terraform.workspace
-- shape values based on the active workspace
-- add a guardrail that blocks an invalid prod configuration
-- surface the active workspace clearly in outputs
 
+1. Derive the active environment from the selected workspace.
+2. Select the exact settings for dev, staging, and prod.
+3. Allow production only when capacity is not `t3.micro` and `auto_approve` is false.
+4. Preserve the resource and output contracts.
 
+## Constraints
 
+Do not add cloud resources, switch workspaces in the learner source directory, or special-case the
+verifier paths. Use one production guardrail with the documented diagnostic.
+
+## Expected initial failure
+
+`python tools/labctl.py check 13` reports `EXPECTED_WORKSPACE_GUARDRAIL_INCOMPLETE` when the staging
+or prod workspace still emits dev settings.
+
+## Validation commands
+
+```text
+python tools/labctl.py reset 13
+python tools/labctl.py check 13
+```
 
 ## Success criteria
-- invalid input values are rejected with variable validation where appropriate
-- unsafe configuration is blocked with a precondition where appropriate
-- advisory quality concerns are expressed with a check block where appropriate
-- `terraform validate` passes
-- `terraform plan` passes for the expected scenario(s)
 
-## How to work this lab
+- the runtime owns exactly default, dev, staging, and prod workspaces;
+- every environment has only `terraform_data.deployment` in its state;
+- workspace outputs match the exact replica, tier, and instance settings;
+- no plan contains a destroy and each post-apply plan is no-op;
+- prod rejects both undersized capacity and auto-approve.
 
-This repository uses a single public working branch:
+## Reset instructions
 
-- `main` — broken starting point
-
-Create your own working branch from `main`:
-
-```bash
-git switch -c my-solution
+```text
+python tools/labctl.py reset 13
 ```
 
-When you are done, run the normal Terraform workflow for the lab:
+Reset removes only Lab 13 runtime workspaces, state, plans, initialization files, and results.
 
-```bash
-terraform init
-terraform validate
-terraform plan
-```
+## Limited hints
 
-## Why this lab matters
-The Terraform Pro exam expects you to understand how environment separation affects configuration design and operational safety.
+The default workspace is not one of the three exercised environments. The guardrail can combine
+the non-production case with all production requirements in one Boolean condition.

@@ -1,63 +1,92 @@
-# Lab 26 - Removed Blocks
+# Lab 26 — Moved and Removed State Semantics
 
-Practice state-preserving refactors using moved and removed blocks so Terraform does not destroy infrastructure unexpectedly.
+## Scenario
 
-## Lab metadata
+An existing service record is renamed in configuration. A separate legacy attachment must leave
+Terraform management while the externally owned object is retained. These are different state
+transitions and must be expressed separately.
 
-- **Lab type:** `refactor`
-- **Tier:** `operations-state`
-- **Difficulty:** `medium`
-- **Success mode:** `plan`
-- **Estimated time:** `20 minutes`
-- **AWS cost risk:** `none`
-- **State mode:** `managed-refactor`
+## Skills tested
 
-> [!IMPORTANT]
-> This is a managed-refactor lab.
->
-> Assume the infrastructure already exists and is already Terraform-managed.
-> Your job is to change the configuration shape safely without introducing unintended destroy/create actions.
-> The goal is to finish with a clean no-op `terraform plan`.
+- `moved` address transitions
+- `removed` configuration removal
+- `destroy = false` and the plan `forget` action
+- plan JSON, state list, and final no-op verification
 
-## What this lab is testing
-- moved block usage
-- removed block usage
-- safe state refactors
+## Difficulty and estimated time
+
+Medium, about 30 minutes.
+
+## Execution mode
+
+Seeded isolated local state using built-in `terraform_data`.
+
+## Cloud credentials required
+
+None.
+
+## Cost risk
+
+None.
+
+## Starting state
+
+The protected old configuration creates `terraform_data.service_old` and
+`terraform_data.legacy_attachment`. The starter contains only the renamed service resource and no
+transition declarations.
+
+## Files allowed to edit
+
+- `starter/main.tf`
+
+## Files not allowed to edit
+
+- `lab.yaml`, `bootstrap/`, `scripts/`, and `tests/`
+- `starter/versions.tf`
 
 ## Tasks
-- identify state address changes in the refactor
-- add moved blocks for renamed addresses
-- add removed blocks where config is intentionally dropped
 
+1. Preserve the service identity at `terraform_data.service` through an address move.
+2. Remove the legacy attachment from state without planning destruction.
+3. Finish with only the service address and a no-op plan.
 
+## Constraints
 
+Do not delete state, use CLI state-move/remove commands, retain the legacy resource block, or allow
+any create/delete action. The attachment must use removal semantics that explicitly retain the
+underlying object.
+
+## Expected initial failure
+
+After seeding, `python tools/labctl.py check 26` reports
+`EXPECTED_MOVED_REMOVED_REFACTOR_INCOMPLETE`; the starter plans service creation and both old
+resources' destruction.
+
+## Validation commands
+
+```text
+python tools/labctl.py reset 26
+python tools/labctl.py seed 26
+python tools/labctl.py check 26
+```
 
 ## Success criteria
-- invalid input values are rejected with variable validation where appropriate
-- unsafe configuration is blocked with a precondition where appropriate
-- advisory quality concerns are expressed with a check block where appropriate
-- `terraform validate` passes
-- `terraform plan` passes for the expected scenario(s)
 
-## How to work this lab
+- old state initially contains both protected addresses;
+- the renamed service has an exact no-op `previous_address` mapping;
+- the attachment has the exact `forget` action, not `delete`;
+- no create/delete action occurs;
+- final state contains only `terraform_data.service`, its value is unchanged, and plan is no-op.
 
-This repository uses a single public working branch:
+## Reset instructions
 
-- `main` — broken starting point
-
-Create your own working branch from `main`:
-
-```bash
-git switch -c my-solution
+```text
+python tools/labctl.py reset 26
 ```
 
-When you are done, run the normal Terraform workflow for the lab:
+Reset removes only Lab 26's generated state, plans, initialization files, and results.
 
-```bash
-terraform init
-terraform validate
-terraform plan
-```
+## Limited hints
 
-## Why this lab matters
-The exam expects you to manage state transitions safely during refactors, not just rewrite resource blocks.
+A rename still manages the same object. A removal stops managing an object. Only one of those
+transitions needs a lifecycle setting controlling whether Terraform destroys the object.

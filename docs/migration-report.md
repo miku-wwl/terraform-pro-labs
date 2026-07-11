@@ -530,6 +530,130 @@ observed summary was `Passed: 01, 02, 07, 10, 11, 16, 18, 25, 31` and `Failed: n
 - Canonical implementations were verified transiently and are not retained on the learner-facing
   branch; they must remain isolated in a future solution/grader branch.
 
+## Phase 12 - State and Refactor Batch B
+
+Migration date: 2026-07-11
+
+Working branch: `main`
+
+Scope: Labs 12, 13, 19, and 26 plus their matrix and migration-report records. Established state,
+backend, and workspace labs were exercised only for regression. No other lab source, shared tool,
+frozen standard, CI configuration, or later-phase artifact was modified.
+
+### Migration design
+
+- Lab 12 is now consumer-focused rather than a duplicate of Lab 04. A protected producer root
+  creates independent dev and prod local states. The starter consumer keeps copied dev values and
+  mixes an environment key into its optional static S3 backend block. The verifier requires the
+  caller-selected producer path, exact remote-state and consumer-owned state addresses, one local
+  create on the initial consumer plan, exact outputs for both producer choices, final no-op plans,
+  and environment-specific backend inputs outside the shared block.
+- Lab 13 no longer duplicates Lab 05's cross-stack workflow. It uses a single local deployment
+  root copied into verifier-owned dev, staging, and prod workspaces. The starter hardcodes dev and
+  leaves a permissive precondition. The verifier checks exact workspace sets, one exact resource
+  address per state, workspace-selected replica/tier values, absence of destroy actions, final
+  no-op plans, and independent production rejection of undersized capacity and auto-approve.
+- Lab 19 replaces the live S3 assumption with a protected old configuration containing three real
+  count-indexed `terraform_data` state instances. Its keyed starter deliberately omits address
+  transitions. Plan JSON must show the exact mappings index 0 to `logs`, index 1 to `assets`, and
+  index 2 to `archive`, all as no-op changes with zero create/delete. The verifier also checks the
+  old and final state lists, unchanged values, and the final no-op plan without deleting state.
+- Lab 26 now seeds both `terraform_data.service_old` and
+  `terraform_data.legacy_attachment`. Its starter withholds both transition declarations. The
+  canonical plan was required to distinguish an exact moved no-op with `previous_address` from a
+  removed resource whose `destroy = false` action is exactly `forget`. Create/delete actions are
+  rejected; final state retains only the renamed service and finishes no-op.
+
+Labs 19 and 26 retain their complete pre-refactor configurations under `bootstrap/old-config`.
+Every generated state, plan, initialization directory, and fixture is isolated under the selected
+lab's `.lab-state` directory. The frozen lab standard and `tools/labctl.py` required no change.
+
+### Starter gates
+
+Each lab was reset and checked before canonical verification and again after the learner-facing
+starter was restored. Labs 19 and 26 were freshly seeded before every check:
+
+| Lab | Marker | Observed target failure |
+| --- | --- | --- |
+| 12 | `EXPECTED_REMOTE_STATE_CONSUMER_INCOMPLETE` | copied values ignored prod state; consumer lacked the remote-state address; backend key remained mixed into the shared block |
+| 13 | `EXPECTED_WORKSPACE_GUARDRAIL_INCOMPLETE` | staging and prod still selected dev settings |
+| 19 | `EXPECTED_COUNT_TO_FOREACH_REFACTOR_INCOMPLETE` | keyed resources planned create/delete because all three exact address mappings were absent |
+| 26 | `EXPECTED_MOVED_REMOVED_REFACTOR_INCOMPLETE` | the service planned create/delete and the attachment planned delete instead of move plus forget |
+
+All four starters passed formatting and applicable offline initialization/validation before their
+intended protected behavior failure. No failure relied on credentials, network access, missing
+providers, invalid placeholders, or deleted state.
+
+### Canonical solution gates
+
+Canonical edits were applied transiently and removed after verification. Every lab passed
+`python tools/labctl.py check <lab-id> --mode solution` twice with reset and clean status between
+runs:
+
+- Lab 12 selected exact dev and prod producer outputs, held only the documented consumer state
+  addresses, created only its local contract initially, kept backend inputs separate, and finished
+  both consumer plans no-op.
+- Lab 13 created only default plus the three declared workspaces, used the exact per-workspace
+  settings and state address, planned no destroy, finished no-op, and rejected both unsafe prod
+  cases with the documented diagnostic.
+- Lab 19 proved the exact 0-to-logs, 1-to-assets, and 2-to-archive `previous_address` mappings with
+  zero create/delete actions, preserved values, ended with all three keyed addresses, and finished
+  no-op.
+- Lab 26 proved the service rename as a no-op moved mapping and the attachment removal as the exact
+  `forget` action produced by `destroy = false`; it planned no create/delete, ended with only the
+  service address, preserved its value, and finished no-op.
+
+### Reset, repeatability, and regression
+
+Between canonical runs, `python tools/labctl.py reset <lab-id>` removed runtime state,
+initialization data, plans, locks, fixtures, and result records. `python tools/labctl.py status
+<lab-id>` reported `Generated artifacts: 0` and no recorded results for all four labs before the
+second canonical run. The second seeds and solution checks reproduced all state lists, plan
+actions, guardrails, and no-op results.
+
+The established state/backend/workspace starter regression covered Labs 03, 04, 05, 11, 12, 13,
+19, 26, and 31. Every lab reproduced its documented expected marker. The repository-wide starter
+gate then ran:
+
+```text
+python tools/labctl.py check --all
+```
+
+It covered all 32 migrated labs and reported
+`Passed: 01, 02, 03, 04, 05, 06, 07, 08, 09, 10, 11, 12, 13, 14, 15, 16, 17, 18, 19, 20, 21, 22, 23, 24, 25, 26, 27, 28, 29, 30, 31, 32`
+and `Failed: none`.
+
+### Cloud safety
+
+No AWS provider, credential lookup, remote backend connection, cloud data lookup, cloud API, or
+real-cloud apply was used by the four Phase 12 labs. Terraform apply was limited to built-in
+`terraform_data` state in lab-owned runtime directories. Optional S3 files contain placeholders
+only and were inspected offline.
+
+### Items not verified
+
+- Linux execution: **NOT VERIFIED**. This phase ran on Windows only. New scripts use `pathlib`,
+  subprocess argument lists, and no shell-specific commands.
+- Terraform versions other than v1.14.0: **NOT VERIFIED**. Only Terraform v1.14.0 was executed;
+  manifests permit `>= 1.6, < 2.0` or `>= 1.7, < 2.0` as documented.
+- Real S3 backend initialization or remote-state migration: **NOT VERIFIED by design**. Lab 12
+  keeps real backend initialization optional and outside default validation.
+- External-provider deletion behavior after `removed`: **NOT VERIFIED by design**. Lab 26 verifies
+  Terraform's plan/state semantics locally and does not claim a remote API result.
+
+### Remaining risks
+
+- Backend inspection is intentionally scoped to the documented one-block exercise rather than a
+  general HCL parser; its protected negative control covers the prohibited expression boundary.
+- Workspace safety is proven in verifier-owned runtime copies and declared names. Manual learner
+  workspace operations outside the documented workflow remain outside reset ownership.
+- Built-in `terraform_data` isolates Terraform state semantics from remote-provider refresh and API
+  behavior. This is intentional for credential-free, cost-free repeatability.
+- Public contracts reveal required addresses, keys, and plan actions but not canonical HCL blocks.
+  Blind practice still depends on respecting protected paths.
+- Canonical implementations were verified transiently and are not retained on the learner-facing
+  branch; they must remain isolated in a future solution/grader branch.
+
 ## Phase 11 - State and Cross-Stack Batch A
 
 Migration date: 2026-07-11

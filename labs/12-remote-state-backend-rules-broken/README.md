@@ -1,67 +1,94 @@
-# Lab 12 — Remote State Consumer and Backend Rules
+# Lab 12 — Remote-State Consumer and Backend Separation
 
-Practice backend limitations, remote state consumption, and the separation between producer and consumer configurations.
+## Scenario
 
-## Lab metadata
+An application stack must read a selected network stack's outputs. Its own optional S3 backend
+configuration is a separate initialization concern and must not be mixed with the producer lookup.
 
-- **Lab type:** `correction`
-- **Tier:** `operations-state`
-- **Difficulty:** `medium`
-- **Success mode:** `plan`
-- **Estimated time:** `25 minutes`
-- **AWS cost risk:** `none`
-- **State mode:** `stateless`
+## Skills tested
 
+- `terraform_remote_state` with a caller-selected local fixture
+- producer/consumer state ownership
+- static partial backend configuration and init-time inputs
+- state-list and plan-action inspection
 
-## What this lab is testing
-- backend block limitations
-- terraform_remote_state
-- producer vs consumer configuration design
-- clear output shaping
+## Difficulty and estimated time
+
+Medium, about 30 minutes.
+
+## Execution mode
+
+Local producer and consumer state fixtures. Optional S3 examples are inspected offline only.
+
+## Cloud credentials required
+
+None for the supported workflow.
+
+## Cost risk
+
+None. No cloud provider or remote backend is contacted.
+
+## Starting state
+
+The protected verifier builds independent dev and prod producer states. The starter consumer uses
+copied dev values and the optional backend example incorrectly owns an environment-specific key.
+
+## Files allowed to edit
+
+- `starter/main.tf`
+- `starter/backend.tf.example`
+
+## Files not allowed to edit
+
+- `lab.yaml`, `bootstrap/`, `scripts/`, and `tests/`
+- `starter/versions.tf`
+- `backend-dev.hcl.example` and `backend-prod.hcl.example`
 
 ## Tasks
-- identify why backend blocks cannot use normal Terraform expressions
-- model a clean producer and consumer split
-- consume upstream values with terraform_remote_state
-- surface the consumed values clearly in outputs
 
-## Starting assumptions
-- backend configuration must stay static and cannot depend on normal Terraform expressions
-- upstream state is produced by a separate configuration
-- this lab is about consuming outputs safely, not redefining backend behavior dynamically
+1. Read the producer output through `terraform_remote_state` using `var.producer_state_path`.
+2. Feed the consumed network into the consumer-owned `terraform_data` resource and output.
+3. Keep only shared static safety settings in the backend block; leave bucket, key, and region in
+   the environment-specific init files.
 
-## Target end state
-- backend misuse is removed
-- terraform_remote_state is used correctly to consume upstream outputs
-- the consumed values are surfaced clearly in outputs
-- the final terraform plan is clean
+## Constraints
 
+Do not copy producer values, initialize S3, add credentials, or make the consumer manage producer
+resources. Preserve the existing output names and consumer resource address.
+
+## Expected initial failure
+
+`python tools/labctl.py check 12` reaches the protected behavior gate and reports
+`EXPECTED_REMOTE_STATE_CONSUMER_INCOMPLETE` because the consumer ignores the producer path and the
+backend boundary is mixed.
+
+## Validation commands
+
+```text
+python tools/labctl.py reset 12
+python tools/labctl.py check 12
+```
+
+The optional real-backend extension would use a learner-owned copy of an `.example` file, but it is
+not part of validation and requires separate authorization.
 
 ## Success criteria
-- backend configuration is no longer treated like normal expression-driven Terraform configuration
-- the producer and consumer responsibilities are clearly separated
-- terraform_remote_state is used correctly
-- the final terraform plan is clean
 
-## How to work this lab
+- dev and prod each resolve the exact selected producer output;
+- consumer state contains only the remote-state data address and consumer contract resource;
+- the initial consumer plan creates only the consumer-owned resource;
+- final consumer plans are no-op;
+- backend expressions contain only shared static safety settings.
 
-This repository uses a single public working branch:
+## Reset instructions
 
-- `main` — broken starting point
-
-Create your own working branch from `main`:
-
-```bash
-git switch -c my-solution
+```text
+python tools/labctl.py reset 12
 ```
 
-When you are done, run the normal Terraform workflow for the lab:
+Reset removes only Lab 12 runtime state, initialization metadata, plans, locks, and result records.
 
-```bash
-terraform init
-terraform validate
-terraform plan
-```
+## Limited hints
 
-## Why this lab matters
-The Terraform Pro exam expects you to understand state sharing patterns and backend rules, not just basic resource authoring.
+The local backend's `path` belongs in the remote-state data source configuration. S3 backend
+bucket, key, and region are initialization inputs, not ordinary Terraform expression values.
