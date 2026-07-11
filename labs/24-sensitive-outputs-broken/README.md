@@ -1,57 +1,88 @@
-# Lab 24 - Sensitive Values and Outputs
+# Lab 24 - Sensitive Inputs, Redaction, and Safe Outputs
 
-Practice correctly marking sensitive inputs and outputs, understanding redaction behavior, and avoiding accidental secret exposure.
+## Scenario
 
-## Lab metadata
+A local database configuration correctly propagates a runtime password as sensitive data, but one debug output explicitly declassifies and exposes it. Preserve useful non-secret diagnostics without publishing credential material.
 
-- **Lab type:** `correction`
-- **Tier:** `core-authoring`
-- **Difficulty:** `medium`
-- **Success mode:** `plan`
-- **Estimated time:** `20 minutes`
-- **AWS cost risk:** `none`
-- **State mode:** `stateless`
+## Skills tested
 
+- Sensitive input and output metadata
+- Automatic sensitivity propagation and CLI redaction
+- Safe, deliberate declassification of derived non-secret metadata
+- Avoiding secret-bearing debug outputs and defaults
 
-## What this lab is testing
-- sensitive variables
-- sensitive outputs
-- nonsensitive() tradeoffs
+## Difficulty and estimated time
+
+- Difficulty: medium
+- Estimated time: 20 minutes
+
+## Execution mode
+
+Provider-free Terraform planning in a protected temporary directory.
+
+## Cloud credentials required
+
+No.
+
+## Cost risk
+
+None.
+
+## Starting state
+
+The password has no committed default and the intended secret-bearing outputs are sensitive. One extra debug output removes protection from the raw password.
+
+## Files allowed to edit
+
+- `starter/main.tf`
+
+## Files not allowed to edit
+
+- `starter/versions.tf`
+- `tests/`
+- `scripts/`
+- `lab.yaml`
 
 ## Tasks
-- mark secret-bearing values as sensitive
-- fix outputs that leak credentials
-- preserve useful diagnostics without exposing secrets
 
+1. Remove the output path that publishes raw credential material.
+2. Preserve sensitive metadata on the connection URI and complete database configuration.
+3. Preserve the non-sensitive credential metadata output without including the password.
+4. Keep the password runtime-supplied; do not add a default or fixture value.
 
+## Constraints
 
+- Do not place a password or secret-like value in source, fixtures, README examples, or logs.
+- Do not declassify the raw password or connection URI.
+- Do not make every output sensitive merely to bypass the safe-diagnostics requirement.
+- Do not edit the protected verifier.
+
+## Expected initial failure
+
+`python tools/labctl.py check 24` reports `EXPECTED_SENSITIVE_BOUNDARY_INCOMPLETE` because the starter includes an unsafe extra output and exposes the runtime probe in normal plan rendering.
+
+## Validation commands
+
+```text
+python tools/labctl.py check 24
+python tools/labctl.py status 24
+```
 
 ## Success criteria
-- invalid input values are rejected with variable validation where appropriate
-- unsafe configuration is blocked with a precondition where appropriate
-- advisory quality concerns are expressed with a check block where appropriate
-- `terraform validate` passes
-- `terraform plan` passes for the expected scenario(s)
 
-## How to work this lab
+- `db_password` is a required sensitive variable.
+- Secret-bearing outputs retain sensitive metadata and render as redacted in CLI plans.
+- Root outputs contain no raw-password debug channel.
+- `credential_metadata` remains non-sensitive and contains only username and configured-status data.
+- No real secret is stored or printed by the default workflow.
 
-This repository uses a single public working branch:
+## Reset instructions
 
-- `main` — broken starting point
-
-Create your own working branch from `main`:
-
-```bash
-git switch -c my-solution
+```text
+python tools/labctl.py reset 24
 ```
 
-When you are done, run the normal Terraform workflow for the lab:
+## Limited hints
 
-```bash
-terraform init
-terraform validate
-terraform plan
-```
-
-## Why this lab matters
-Terraform Pro scenarios often include secret-safe output shaping and redaction expectations.
+- Sensitivity is metadata that propagates through expressions.
+- Declassify only a derived value that cannot reconstruct the secret.

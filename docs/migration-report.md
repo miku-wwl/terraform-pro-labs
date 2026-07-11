@@ -647,3 +647,112 @@ state was created.
   canonical HCL expressions. Blind practice still depends on respecting protected paths.
 - Canonical implementations were verified transiently and are not stored on the learner-facing
   branch; they must remain isolated in a future solution/grader branch.
+
+## Phase 8 - Core Authoring Batch C
+
+Migration date: 2026-07-11
+
+Working branch: `main`
+
+Scope: Labs 24, 27, 30, and 32 plus their matrix and migration-report records. No other lab,
+shared repository tool, frozen standard, CI configuration, or later-phase artifact was modified.
+
+### Migration design
+
+- Lab 24 no longer commits a password-like default or depends on AWS. Its valid starter has one
+  focused defect: a debug output explicitly declassifies the runtime password. A protected verifier
+  supplies a clearly synthetic probe only through a temporary process environment and checks the
+  sensitive variable declaration, exact output set, sensitive and non-sensitive output metadata,
+  exact safe diagnostic content, and normal CLI plan redaction. It never prints the probe.
+- Lab 27 now models nested team/app objects with global, team, and app tag layers. The starter keeps
+  only the first app per non-empty team, keys records by team alone, and gives team tags precedence
+  over app tags. Three Terraform Test runs verify exact compound keys and tag values, same-named apps
+  across teams, empty teams, and duplicate-name rejection. A protected source contract additionally
+  requires the target flatten and layered merge constructs.
+- Lab 30 is now provider-free and has one incomplete naming implementation: it validates only the
+  character set and lowercases without normalizing separators. Eight Terraform Test runs cover a
+  valid mixed-case value, minimum and maximum length boundaries, leading digit, trailing separator,
+  illegal character, short input, and above-maximum input. Tests also verify tokenization and
+  final-name construction.
+- Lab 32 is no longer a duplicate lifecycle solution. Its service deliberately omits the dependency
+  replacement relationship. A protected verifier applies local state, separately plans an upstream
+  release-marker update and a direct service-name update, and checks actions plus `action_reason`.
+  The canonical solution replaces the service only for the marker change with
+  `replace_by_triggers`; the direct name change remains an update.
+
+All four default workflows are local and use only Terraform's built-in provider. No AWS provider,
+credential, API request, real secret, cloud resource, or billable operation is involved.
+
+### Starter gates
+
+For each lab, the following sequence was executed before and after canonical verification:
+
+```text
+python tools/labctl.py reset <lab-id>
+python tools/labctl.py check <lab-id>
+```
+
+Every starter passed format, offline initialization, and validation before the intended protected
+behavior failure:
+
+| Lab | Marker | Observed target failure |
+| --- | --- | --- |
+| 24 | `EXPECTED_SENSITIVE_BOUNDARY_INCOMPLETE` | unsafe extra output existed and normal plan rendering contained the synthetic probe; the verifier did not print it |
+| 27 | `EXPECTED_NESTED_COLLECTION_TRANSFORM_INCOMPLETE` | only team keys/first apps existed and required compound keys were absent |
+| 30 | `EXPECTED_REGEX_NAMING_INCOMPLETE` | separator normalization failed and invalid leading/length forms were accepted |
+| 32 | `EXPECTED_REPLACE_TRIGGER_INCOMPLETE` | marker updated, service was no-op, direct name remained an update, and no replacement reason existed |
+
+### Canonical solution gates
+
+Canonical edits were applied transiently and removed after verification. Every lab passed
+`python tools/labctl.py check <lab-id> --mode solution` twice with reset and clean status between
+runs:
+
+- Lab 24: exact metadata/output-set checks and CLI redaction passed without printing the synthetic
+  probe or persisting its generated plan outside the temporary verifier directory.
+- Lab 27: all 3 Terraform Test runs passed and the flatten/merge source contract passed.
+- Lab 30: all 8 legal, illegal, normalization, and boundary runs passed.
+- Lab 32: the marker action was `update`; the dependent service was replaced with
+  `action_reason = replace_by_triggers`; and a name-only service change remained `update`.
+
+### Reset, repeatability, and regression
+
+Between canonical runs, `python tools/labctl.py reset <lab-id>` removed generated initialization
+and result artifacts. `python tools/labctl.py status <lab-id>` reported `Generated artifacts: 0`
+and no recorded results for all four labs. Labs 24 and 32 created plan/state artifacts only inside
+temporary directories, which were deleted when their verifiers exited.
+
+After canonical changes were removed, all four starter markers and failure categories were
+reproduced. The aggregate starter gate was then run with:
+
+```text
+python tools/labctl.py check --all
+```
+
+It covered 17 migrated labs and reported
+`Passed: 01, 02, 07, 10, 11, 16, 18, 20, 21, 22, 23, 24, 25, 27, 30, 31, 32`
+and `Failed: none`.
+
+### Items not verified
+
+- Linux execution: **NOT VERIFIED**. This phase ran on Windows only. Scripts use `pathlib`,
+  subprocess argument lists, explicit environments, and temporary directories, but no Linux runner
+  was available.
+- Terraform versions other than v1.14.0: **NOT VERIFIED**. Only the installed Terraform v1.14.0
+  binary was executed; manifests permit `>= 1.6, < 2.0`.
+- Behavior with real credentials: **NOT VERIFIED by design**. Lab 24 intentionally uses only a
+  synthetic probe and must never require or read a real secret.
+- Remote-provider replacement behavior: **NOT VERIFIED by design**. Lab 32 isolates Terraform
+  lifecycle semantics with built-in `terraform_data` rather than claiming a cloud API result.
+
+### Remaining risks
+
+- Terraform `sensitive` metadata redacts normal CLI rendering but does not encrypt plan or state
+  payloads. Lab 24 therefore uses only a synthetic value and deletes its temporary plan; production
+  systems still require secured remote state and access controls.
+- Public behavioral tests expose required result shapes and scenario values but not canonical HCL
+  expressions. Blind practice still depends on respecting protected paths.
+- Lab 27's source contract is intentionally narrow: it confirms target constructs after behavioral
+  correctness, not arbitrary HCL equivalence.
+- Canonical implementations were verified transiently and are not retained on the learner-facing
+  branch; they must remain isolated in a future solution/grader branch.

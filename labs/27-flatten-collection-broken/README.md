@@ -1,58 +1,89 @@
-# Lab 27 - Flatten and Merge Collections
+# Lab 27 - Flattened Collections, Stable Keys, and Tag Merging
 
-Practice flattening nested structures and merging tags into stable maps suitable for for_each-driven resource creation.
+## Scenario
 
-## Lab metadata
+Teams own nested application lists with global, team, and app tag layers. The starter keeps only the first app per team, keys records only by team, and applies tag precedence incorrectly. Produce a complete, stable catalog.
 
-- **Lab type:** `correction`
-- **Tier:** `core-authoring`
-- **Difficulty:** `medium`
-- **Success mode:** `plan`
-- **Estimated time:** `25 minutes`
-- **AWS cost risk:** `none`
-- **State mode:** `stateless`
+## Skills tested
 
+- Nested collection comprehensions and `flatten`
+- Stable compound keys for `for_each`
+- Layered `merge` precedence
+- Empty nested collections and duplicate-name validation
 
-## What this lab is testing
-- nested collection transforms
-- stable map keys
-- merge() for layered tags
+## Difficulty and estimated time
+
+- Difficulty: medium
+- Estimated time: 25 minutes
+
+## Execution mode
+
+Provider-free local Terraform using `terraform_data`.
+
+## Cloud credentials required
+
+No.
+
+## Cost risk
+
+None.
+
+## Starting state
+
+The input contract and duplicate validation are present. The transform emits at most one app per team and lets team tags overwrite app-specific values.
+
+## Files allowed to edit
+
+- `starter/main.tf`
+
+## Files not allowed to edit
+
+- `starter/versions.tf`
+- `tests/`
+- `scripts/`
+- `lab.yaml`
 
 ## Tasks
-- reshape nested input data with flatten
-- construct stable for_each keys
-- merge global and team-level tags
-- return readable map outputs
 
+1. Transform every nested app into one flat row.
+2. Build a stable map whose keys include both team and app identity.
+3. Merge tags in global, team, then app precedence order.
+4. Create one record per app and preserve exact keys in the output.
+5. Keep empty teams safe and same-named apps in different teams distinct.
 
+## Constraints
 
+- Use the target flatten and merge constructs rather than hardcoded app records.
+- Do not use list indexes as resource identity.
+- Do not weaken duplicate-name validation.
+- Do not edit protected tests.
+
+## Expected initial failure
+
+`python tools/labctl.py check 27` reports `EXPECTED_NESTED_COLLECTION_TRANSFORM_INCOMPLETE` because apps are missing, keys are unstable for the scenario, and tag precedence is wrong.
+
+## Validation commands
+
+```text
+python tools/labctl.py check 27
+python tools/labctl.py status 27
+```
 
 ## Success criteria
-- invalid input values are rejected with variable validation where appropriate
-- unsafe configuration is blocked with a precondition where appropriate
-- advisory quality concerns are expressed with a check block where appropriate
-- `terraform validate` passes
-- `terraform plan` passes for the expected scenario(s)
 
-## How to work this lab
+- Default keys are exactly `payments.ledger`, `platform.api`, and `platform.worker`.
+- Every nested app becomes one record.
+- App tags override team tags, and team tags override global tags.
+- Same-named apps in different teams retain distinct addresses.
+- Empty teams create nothing and duplicate names within one team are rejected.
 
-This repository uses a single public working branch:
+## Reset instructions
 
-- `main` — broken starting point
-
-Create your own working branch from `main`:
-
-```bash
-git switch -c my-solution
+```text
+python tools/labctl.py reset 27
 ```
 
-When you are done, run the normal Terraform workflow for the lab:
+## Limited hints
 
-```bash
-terraform init
-terraform validate
-terraform plan
-```
-
-## Why this lab matters
-Terraform Pro exam questions often require transforming complex input structures before safe iteration.
+- First produce nested row lists, then collapse one collection level.
+- Argument order determines which value wins a tag merge.

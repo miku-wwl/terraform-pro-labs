@@ -1,18 +1,22 @@
 variable "db_username" {
-  description = "Database username."
+  description = "Non-secret database username."
   type        = string
   default     = "app_user"
 }
 
 variable "db_password" {
-  description = "Database password used by the application."
+  description = "Database password supplied at runtime."
   type        = string
   sensitive   = true
-  default     = "REPLACE-ME"
+  nullable    = false
 }
 
 locals {
-  connection_string = format("postgres://%s:%s@db.internal:5432/app", var.db_username, var.db_password)
+  connection_uri = format(
+    "postgres://%s:%s@db.internal:5432/app",
+    var.db_username,
+    var.db_password,
+  )
 }
 
 resource "terraform_data" "database_config" {
@@ -22,14 +26,21 @@ resource "terraform_data" "database_config" {
   }
 }
 
-output "connection_string" {
-  value     = local.connection_string
+output "connection_uri" {
+  value     = local.connection_uri
   sensitive = true
 }
 
 output "database_config" {
   value     = terraform_data.database_config.output
   sensitive = true
+}
+
+output "credential_metadata" {
+  value = {
+    username            = var.db_username
+    password_configured = nonsensitive(length(var.db_password) > 0)
+  }
 }
 
 output "password_debug" {
