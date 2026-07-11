@@ -61,6 +61,7 @@
   },
   "editable_paths": ["starter/main.tf"],
   "protected_paths": [
+    ".gitignore",
     "lab.yaml",
     "starter/variables.tf",
     "starter/versions.tf",

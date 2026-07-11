@@ -1,5 +1,141 @@
 # Terraform Professional Labs Migration Report
 
+## Phase 13 - Final repository acceptance
+
+Acceptance date: 2026-07-11
+
+Working branch: `main`
+
+Scope: independent release review of all 32 labs; repository-level consistency validation; CI;
+the four required final documents; and only defects exposed by final acceptance. No lab topic was
+expanded, no new lab was added, and Starter Standard v1 was not changed.
+
+### Defects found and fixed
+
+- The root README still described only five pilots as executable. It now describes the complete
+  32-lab starter collection, the repository checks, cloud-safety boundary, and upstream attribution.
+- No CI workflow existed. `.github/workflows/terraform-labs.yml` now runs repository consistency,
+  recursive formatting, and aggregate gates on both Ubuntu and Windows. The learner branch runs
+  starter expected-failure gates; a branch named `solutions` runs canonical solution gates.
+- The repository had no single static release check for tracked-file ownership, README/manifest
+  consistency, weak assertions, leakage, credential signatures, or CI shape. `tools/repo_check.py`
+  now provides that portable check and uses the existing manifest loader as the schema authority.
+- Labs 01, 07, and 11 used the legacy `Hints` heading; they now use the frozen `Limited hints`
+  heading. Labs 03 and 04 now name their exact protected version files instead of the ambiguous
+  phrase “version files.”
+- Lab 31's tracked lab-local `.gitignore` was required for safe optional backend files but was not
+  declared protected or listed in the README. The manifest and README now protect it explicitly.
+- Final canonical reconstruction initially exposed two answer defects without changing tests:
+  Lab 15 used mock-provider runtime-unknown bucket fields for stable outputs, and Lab 17 assumed an
+  aggregate fixture output that does not exist. The canonical versions were corrected to derive
+  stable output values from declared configuration and to consume the fixture's three actual
+  outputs. Both then passed individually and in the complete repeat run. These answer changes were
+  confined to the temporary acceptance copy and are not present in learner starters.
+
+### Structure, test quality, and safety audit
+
+`python tools/repo_check.py` inspected all tracked lab files and confirmed 32 sequential IDs,
+valid manifests, README titles and required sections, exact workflow values, editable/protected
+ownership, the directory contract, no answer-bearing filenames, no leaking TODO expressions, no
+standalone weak Terraform Test assertions, no credential/private-key signatures, and no manifest
+whose default path needs credentials or creates billable resources.
+
+The only `can(regex(...))` occurrences are meaningful variable validations in Labs 08, 29, and 30;
+they are not weak output-existence assertions. No real secret or credential was supplied. Optional
+S3 paths in Labs 04, 12, and 31 remain offline by default and use placeholder examples.
+
+### Starter gates
+
+After a clean repository format and manifest check, the following aggregate command ran all labs:
+
+```text
+python tools/labctl.py check --all
+```
+
+Result: **32/32 PASS as expected failures**. Every lab passed its applicable format, initialization,
+and validation stages before the documented protected test/state/scoring rule returned the exact
+manifest marker. The aggregate summary listed Labs 01-32 under `Passed` and `Failed: none`.
+
+### Canonical solution gates and reset
+
+Canonical solutions were reconstructed only in an isolated temporary repository copy. The first
+aggregate run passed 30 labs and correctly rejected Labs 15 and 17 for the answer defects described
+above. After correcting those implementations, both labs passed individually. Then every lab was
+reset and the complete solution aggregate was run again:
+
+```text
+python tools/labctl.py check --all --mode solution
+```
+
+Result: **32/32 PASS**. Combined with the 30 first-run passes and the two corrected individual
+passes, every canonical solution passed twice with reset between successful runs. Terraform Test
+suites reported their exact expected run counts; Lab 25 scored 100/100. Labs 03, 11, 19, and 26
+proved exact state mappings, zero unintended create/delete actions, preserved values, and final
+no-op plans. Workspace/backend/state verifiers proved their declared isolated state and cleanup
+boundaries.
+
+### Final lab status
+
+| Labs | Count | Starter | Solution | Reset | Default cloud | Release status |
+| --- | ---: | --- | --- | --- | --- | --- |
+| 01-32 | 32 | verified | verified twice | verified | credentials false; billable false | release-ready |
+
+Per-lab topics, types, execution modes, state requirements, risks, and Phase 13 verification flags
+are recorded in `docs/lab-matrix.csv`.
+
+### CI and repository commands
+
+The following release checks were actually executed and inspected on Windows:
+
+```text
+terraform version
+python --version
+terraform fmt -check -recursive
+python tools/labctl.py list
+python tools/repo_check.py
+python tools/labctl.py check --all
+python tools/labctl.py check --all --mode solution   # isolated canonical copy
+python tools/labctl.py reset <01..32>
+python tools/labctl.py status <01..32>
+git status --short
+git diff --stat
+git diff
+```
+
+The workflow received static validation from `tools/repo_check.py`. No hosted GitHub Actions job
+was triggered from this local phase.
+
+### NOT VERIFIED
+
+- Linux execution: **NOT VERIFIED locally**. The new CI matrix declares Ubuntu and Windows, but no
+  hosted run was available during this phase.
+- Hosted GitHub Actions execution and remote workflow parsing: **NOT VERIFIED**. Workflow structure
+  passed the local static contract only.
+- Terraform versions other than v1.14.0: **NOT VERIFIED**.
+- AWS provider versions other than v6.54.0, random provider versions other than v3.9.0, and local
+  provider versions other than v2.9.0: **NOT VERIFIED**.
+- Real AWS/HCP service behavior and real S3 backend initialization: **NOT VERIFIED by design**.
+  Default tests use mocks, local state, offline fixtures, or conceptual scoring.
+
+### Remaining release risks
+
+- Fresh initialization for AWS/random/local provider labs needs registry access or a populated
+  provider cache, although no service credentials are needed.
+- Provider mocks validate schema and Terraform graph behavior, not account policy, authorization,
+  quotas, eventual consistency, or service-side lifecycle behavior.
+- Canonical solutions remain intentionally absent from the learner branch. The `solutions` branch
+  must retain matching implementations for its CI gate.
+- The repository contains Apache License 2.0 and now attributes the named upstream project, but
+  full provenance and whether any NOTICE obligations apply remain **NOT VERIFIED**.
+
+### Suggested commit split
+
+1. `ci(terraform-labs): add final repository and cross-platform starter gates`
+2. `docs(release): record phase 13 acceptance and attribution risks`
+3. `docs(labs): align protected paths and hint headings`
+
+No commit or push was created in this phase.
+
 ## Phase 2 — Starter framework and pilot labs
 
 Migration date: 2026-07-10

@@ -53,6 +53,7 @@ No credentials are required or read by the default validation path. The optional
 - `tests/`
 - `scripts/verify_backend.py`
 - `lab.yaml`
+- `.gitignore`
 
 ## Tasks
 

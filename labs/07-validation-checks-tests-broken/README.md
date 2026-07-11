@@ -93,7 +93,7 @@ python tools/labctl.py reset 07
 
 Reset removes only generated Terraform artifacts and recorded check results. It preserves `starter/main.tf` so learner work is not discarded.
 
-## Hints
+## Limited hints
 
 - Choose the guard type based on whether a rule concerns one input, a contextual resource operation, or advisory quality.
 - `expect_failures` identifies the configuration object expected to report a diagnostic; it does not contain the implementation.

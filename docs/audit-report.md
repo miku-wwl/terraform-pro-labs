@@ -1,5 +1,36 @@
 # Phase 1 Read-Only Audit Report
 
+> Phase 13 final acceptance addendum (2026-07-11): the Phase 1 findings below are retained as the
+> historical baseline. All 32 labs have now been migrated and independently re-audited against
+> Starter Standard v1. Current release status is recorded in `docs/lab-matrix.csv` and the Phase 13
+> section of `docs/migration-report.md`.
+
+## Phase 13 final acceptance summary
+
+- Structure and manifest validation: **PASS, 32/32**. IDs are exactly 01-32; README titles,
+  difficulty, time, expected markers, validation/reset commands, editable paths, protected paths,
+  tracked files, and the directory contract are consistent.
+- Starter gates: **PASS, 32/32**. Every valid starter reached its declared protected gate and
+  produced its declared marker. No credential, network, placeholder-name, or unrelated syntax
+  failure was accepted as evidence.
+- Canonical solution gates: **PASS, 32/32**, twice with a reset between runs. State/refactor labs
+  proved exact address transitions, zero unintended create/delete actions, and final no-op plans.
+- Reset/repeatability: **PASS, 32/32**. Lab-owned state, plans, initialization metadata, dependency
+  locks, workspaces, and recorded results were removed before the repeated solution run.
+- Test-quality scan: **PASS**. No standalone `!= null` or `can(...)` assertion remains in protected
+  Terraform Test files; behavioral, boundary, failure, and state cases are present where applicable.
+- Default cloud safety: **PASS, 32/32**. No default workflow requires credentials or creates
+  billable resources. No real AWS apply, lookup, backend connection, or API request was executed.
+- Repository and CI static acceptance: **PASS**. Repository formatting, `tools/repo_check.py`,
+  `tools/labctl.py list`, and `python tools/labctl.py check --all` passed. The workflow defines
+  Windows and Linux starter gates and a solution-branch gate without a live-cloud job.
+
+The release still has explicit `NOT VERIFIED` boundaries: hosted GitHub Actions execution, Linux
+runtime behavior in this local phase, Terraform versions other than v1.14.0, provider versions
+other than AWS v6.54.0/random v3.9.0/local v2.9.0, optional real S3 backend paths, and real cloud
+service behavior. The Apache-2.0 file is present and upstream attribution is now visible in the
+root README, but provenance and any applicable NOTICE obligation remain a pre-publication risk.
+
 Audit date: 2026-07-10
 
 Repository branch: `main`

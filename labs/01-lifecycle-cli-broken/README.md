@@ -88,7 +88,7 @@ python tools/labctl.py reset 01
 
 The verifier's state is temporary; reset removes only lab-owned initialization files, plans, state, and recorded check results.
 
-## Hints
+## Limited hints
 
 - Lifecycle rules belong to the managed resource whose destruction must be blocked.
 - `terraform validate` alone cannot prove that a destroy operation is protected.

@@ -39,7 +39,8 @@ Default: none. Optional S3 storage/request charges are outside validation.
 
 ## Files not allowed to edit
 
-- `bootstrap/`, `backend-dev.hcl.example`, version files, `scripts/`, `tests/`, and `lab.yaml`
+- `bootstrap/`, `backend-dev.hcl.example`, `starter/consumer/versions.tf`, `scripts/`, `tests/`,
+  and `lab.yaml`
 
 ## Tasks
 

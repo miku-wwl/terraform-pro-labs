@@ -113,7 +113,7 @@ python tools/labctl.py reset 11
 
 Reset removes only Lab 11 generated artifacts and recorded check results. It preserves both learner-editable configuration files.
 
-## Hints
+## Limited hints
 
 - The first stage is about associating a supplied identifier with an existing configuration address, not generating a replacement.
 - The second stage changes only the address. Terraform needs an explicit record of the old and new addresses to distinguish a move from delete/create.

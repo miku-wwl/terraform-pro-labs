@@ -2,6 +2,10 @@
 
 Status: Starter Standard v1, frozen after the Phase 5 pilot quality gate.
 
+Phase 13 release review: all 32 labs were accepted against this unchanged standard. No contract
+defect was found and no requirement was redesigned. The final repository checker operationalizes
+the existing manifest, README, path, starter-leakage, test-quality, cloud-safety, and CI checks.
+
 This document defines the frozen contract for future migration phases. The Phase 5 migration report records the five pilots certified against this version. A later change to this standard requires a concrete defect, a recorded reason, the affected lab list, and remediation notes in the migration report.
 
 ## 1. Goals
