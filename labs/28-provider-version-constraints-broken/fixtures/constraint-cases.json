@@ -1,0 +1,41 @@
+{
+  "runtime": {
+    "path": "starter/versions.tf",
+    "subject": "required_version",
+    "candidates": {
+      "1.5.9": false,
+      "1.6.0": true,
+      "1.14.0": true,
+      "2.0.0": false
+    }
+  },
+  "bounded_provider": {
+    "path": "starter/versions.tf",
+    "subject": "aws",
+    "candidates": {
+      "5.99.0": false,
+      "6.0.0": true,
+      "6.2.0": false,
+      "6.54.0": true,
+      "7.0.0": false
+    }
+  },
+  "minimum_provider": {
+    "path": "starter/examples/minimum/versions.tf",
+    "subject": "aws",
+    "candidates": {
+      "5.99.0": false,
+      "6.0.0": true,
+      "7.0.0": true
+    }
+  },
+  "exact_provider": {
+    "path": "starter/examples/exact/versions.tf",
+    "subject": "aws",
+    "candidates": {
+      "6.53.0": false,
+      "6.54.0": true,
+      "6.54.1": false
+    }
+  }
+}

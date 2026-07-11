@@ -1,0 +1,26 @@
+{
+  "schema_version": 1,
+  "id": 28,
+  "title": "Provider Version Constraint Semantics",
+  "type": "constraint",
+  "tier": "operations-state",
+  "difficulty": "medium",
+  "estimated_minutes": 20,
+  "execution": {"mode": "local-semantic-check", "terraform_version": ">= 1.6, < 2.0", "requires_cloud_credentials": false, "creates_billable_resources": false, "backend": "local"},
+  "validation": {
+    "starter_expected_result": "fail",
+    "expected_failure_stage": "test",
+    "expected_error_category": "version-range-semantics",
+    "expected_failing_test": "scripts/verify_constraints.py",
+    "expected_failure_marker": "EXPECTED_CONSTRAINT_SEMANTICS_INCOMPLETE",
+    "solution_expected_result": "pass",
+    "commands": [
+      {"name": "format", "stage": "format", "argv": ["terraform", "fmt", "-check", "-recursive"]},
+      {"name": "init selected provider", "stage": "init", "argv": ["terraform", "init", "-backend=false", "-input=false"]},
+      {"name": "validate root constraints", "stage": "validate", "argv": ["terraform", "validate"]},
+      {"name": "constraint semantics", "stage": "test", "argv": ["{python}", "../scripts/verify_constraints.py"]}
+    ]
+  },
+  "editable_paths": ["starter/versions.tf", "starter/examples/minimum/versions.tf", "starter/examples/exact/versions.tf"],
+  "protected_paths": ["lab.yaml", "fixtures/", "scripts/"]
+}

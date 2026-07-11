@@ -1,67 +1,90 @@
-# Lab 17 — Data Sources and Cross-Stack Lookups
+# Lab 17 - Data Sources and Cross-Stack Lookup Boundaries
 
-Practice using data sources for lookups and reasoning about values produced outside the current configuration.
+## Scenario
 
-## Lab metadata
+An application stack currently contains manually copied network identifiers. Replace them with a local cross-stack data lookup whose producer path is configurable and whose consumer output is normalized.
 
-- **Lab type:** `correction`
-- **Tier:** `operations-state`
-- **Difficulty:** `medium`
-- **Success mode:** `plan`
-- **Estimated time:** `20 minutes`
-- **AWS cost risk:** `none`
-- **State mode:** `stateless`
+## Skills tested
 
+- Built-in `terraform_remote_state` data source
+- Producer/consumer output contracts
+- Configurable external lookup inputs
+- Deterministic normalization of looked-up collections
+- Expected-failure input tests
 
-## What this lab is testing
-- data sources
-- lookup by tag and filter
-- cross-stack thinking
-- plan-time values
+## Difficulty and estimated time
+
+- Difficulty: medium
+- Estimated time: 20 minutes
+
+## Execution mode
+
+Local state fixtures only. No remote backend is initialized.
+
+## Cloud credentials required
+
+No.
+
+## Cost risk
+
+None.
+
+## Starting state
+
+The output shape exists, but its identifiers are manually copied and the `network_state_path` input has no effect.
+
+## Files allowed to edit
+
+- `starter/main.tf`
+
+## Files not allowed to edit
+
+- `starter/versions.tf`
+- `fixtures/`
+- `tests/`
+- `scripts/`
+- `lab.yaml`
 
 ## Tasks
-- look up existing infrastructure with data sources
-- avoid hardcoded ids
-- surface looked-up values clearly in outputs
-- reason about what is known at plan time
 
-## Starting assumptions
-- the configuration should discover existing infrastructure instead of hardcoding ids
-- looked-up values should come from data sources, not manual copy-paste
-- the student should reason about what is known at plan time
+1. Read producer outputs through a `terraform_remote_state` data source named `network`.
+2. Use the primary fixture when no path is supplied and honor a caller-supplied state path.
+3. Return the exact network contract, sorting subnet IDs and selecting the first normalized subnet.
+4. Keep invalid non-state paths rejected.
 
-## Target end state
-- existing infrastructure is looked up with data sources
-- hardcoded ids are removed
-- outputs clearly show the looked-up values
-- the final terraform plan is clean
+## Constraints
 
+- Do not copy fixture identifiers into the configuration.
+- Preserve the variable and output addresses.
+- Do not initialize a real remote backend or add a cloud provider.
+- Do not edit protected fixtures or tests.
+
+## Expected initial failure
+
+`python tools/labctl.py check 17` reports `EXPECTED_CROSS_STACK_LOOKUP_INCOMPLETE` because the starter ignores both producer fixtures.
+
+## Validation commands
+
+```text
+python tools/labctl.py check 17
+python tools/labctl.py status 17
+```
 
 ## Success criteria
-- no hardcoded infrastructure ids remain in the configuration
-- data sources are used correctly to look up existing values
-- outputs clearly expose the looked-up values
-- the final terraform plan is clean
 
-## How to work this lab
+- The default fixture produces the exact normalized primary network contract.
+- A path input selects the secondary producer without code changes.
+- Subnet ordering and selection are deterministic.
+- Invalid lookup filenames fail variable validation.
+- No external account, default VPC, or network API is required.
 
-This repository uses a single public working branch:
+## Reset instructions
 
-- `main` — broken starting point
-
-Create your own working branch from `main`:
-
-```bash
-git switch -c my-solution
+```text
+python tools/labctl.py reset 17
 ```
 
-When you are done, run the normal Terraform workflow for the lab:
+## Limited hints
 
-```bash
-terraform init
-terraform validate
-terraform plan
-```
-
-## Why this lab matters
-The Terraform Pro exam expects you to understand when to use data sources and how to consume values from infrastructure created elsewhere.
+- The local backend accepts a filesystem path in its backend configuration map.
+- Separate the raw producer outputs from the normalized consumer object.

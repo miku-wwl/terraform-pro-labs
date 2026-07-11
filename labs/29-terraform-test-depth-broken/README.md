@@ -1,58 +1,92 @@
-# Lab 29 - Terraform Test Depth
+# Lab 29 - Sequential Terraform Test State
 
-Practice deeper terraform test patterns including multi-run setup/teardown and richer assert coverage.
+## Scenario
 
-## Lab metadata
+A release deployment replaces its local identity when the release changes. The existing test only plans the initial value and proves no state transition. Author a four-run Terraform Test flow that applies setup state, applies an upgrade, verifies steady state, and checks invalid input.
 
-- **Lab type:** `correction`
-- **Tier:** `quality`
-- **Difficulty:** `hard`
-- **Success mode:** `test`
-- **Estimated time:** `30 minutes`
-- **AWS cost risk:** `none`
-- **State mode:** `stateless`
+## Skills tested
 
+- `run` blocks with `plan` and `apply`
+- State shared sequentially within one test file
+- Cross-run output references
+- Replacement identity assertions
+- `expect_failures` and useful assertion messages
 
-## What this lab is testing
-- run blocks
-- command = apply setup
-- multi-step test flow
-- assert message quality
+## Difficulty and estimated time
+
+- Difficulty: hard
+- Estimated time: 30 minutes
+
+## Execution mode
+
+Provider-free Terraform Test with test-managed local state.
+
+## Cloud credentials required
+
+No.
+
+## Cost risk
+
+None.
+
+## Starting state
+
+The protected configuration is complete, but the editable test contains only one plan run. It has no setup apply, update, cross-run comparison, steady-state proof, or failure scenario.
+
+## Files allowed to edit
+
+- `starter/tests/release_flow.tftest.hcl`
+
+## Files not allowed to edit
+
+- `starter/main.tf`
+- `starter/versions.tf`
+- `scripts/`
+- `lab.yaml`
 
 ## Tasks
-- fix failing assertions in the provided test flow
-- add a setup run using command = apply
-- verify outputs across sequential runs
 
+1. Apply release `v1` as setup and assert its exact service/release output.
+2. Apply release `v2`, assert the new output, and prove its deployment ID differs from setup.
+3. Plan `v2` again and prove the ID and output remain the upgraded values.
+4. Add a plan run that expects the release variable to reject `latest`.
+5. Give each behavioral assertion a diagnostic message.
 
+## Constraints
 
+- Keep exactly four run scenarios in one test file.
+- Include at least two apply runs and one plan run.
+- Use a cross-run deployment ID reference rather than hardcoding generated IDs.
+- Do not modify the protected configuration or verifier.
+
+## Expected initial failure
+
+`python tools/labctl.py check 29` reports `EXPECTED_SEQUENTIAL_TEST_FLOW_INCOMPLETE` because the single plan neither establishes nor changes state.
+
+## Validation commands
+
+```text
+terraform -chdir=labs/29-terraform-test-depth-broken/starter test
+python tools/labctl.py check 29
+python tools/labctl.py status 29
+```
 
 ## Success criteria
-- invalid input values are rejected with variable validation where appropriate
-- unsafe configuration is blocked with a precondition where appropriate
-- advisory quality concerns are expressed with a check block where appropriate
-- `terraform validate` passes
-- `terraform test` passes for the expected scenario(s)
 
-## How to work this lab
+- Exactly four runs pass.
+- Setup applies `v1` and the upgrade applies `v2` in the same sequential test state.
+- The upgrade receives a different deployment ID from setup.
+- A later `v2` plan proves the upgraded state is stable.
+- Invalid release syntax is attributed to `var.release_version`.
+- No external provider, cloud state, or lifecycle answer is exposed in the starter test.
 
-This repository uses a single public working branch:
+## Reset instructions
 
-- `main` — broken starting point
-
-Create your own working branch from `main`:
-
-```bash
-git switch -c my-solution
+```text
+python tools/labctl.py reset 29
 ```
 
-When you are done, run the normal Terraform workflow for the lab:
+## Limited hints
 
-```bash
-terraform init
-terraform validate
-terraform plan
-```
-
-## Why this lab matters
-The exam expects practical testing literacy beyond a single happy-path plan assertion.
+- Outputs from an earlier run can be referenced by the run label and output name.
+- Apply runs make generated IDs known; a plan before setup does not.

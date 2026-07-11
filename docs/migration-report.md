@@ -530,6 +530,132 @@ observed summary was `Passed: 01, 02, 07, 10, 11, 16, 18, 25, 31` and `Failed: n
 - Canonical implementations were verified transiently and are not retained on the learner-facing
   branch; they must remain isolated in a future solution/grader branch.
 
+## Phase 10 - AWS, Constraints, and Terraform Test Batch B
+
+Migration date: 2026-07-11
+
+Working branch: `main`
+
+Scope: Labs 15, 17, 28, and 29, their matrix and migration-report records, and two narrow
+`.gitignore` exceptions required to commit Lab 17's synthetic state fixtures. No other lab,
+shared repository tool, frozen standard, CI configuration, or later-phase artifact was modified.
+
+### Migration design
+
+- Lab 15 is now an `aws-mock` exercise. Its valid starter deliberately creates versioning and
+  lifecycle configuration for every bucket, reverses tag precedence, supplies an invented
+  retention value, and returns lists. Three Terraform Test runs verify exact bucket keys,
+  conditional resource keys, enabled versioning, lifecycle days, bucket-specific tag precedence,
+  exact map outputs, the all-disabled boundary, and invalid retention. No AWS request is made.
+- Lab 17 no longer reads a live default VPC. It uses two protected local Terraform state snapshots
+  to model producer stacks. The starter contains manually copied identifiers and ignores its path
+  input. Three runs verify the default producer, an alternate caller-selected producer, sorted and
+  selected subnet outputs, the exact consumer boundary, and invalid lookup filenames. A protected
+  source check requires the built-in `terraform_remote_state` data source. Exact `.gitignore`
+  exceptions make only these two synthetic snapshots trackable while generated state remains
+  ignored repository-wide.
+- Lab 28 no longer contains the unrelated environment, instance-size, precondition, and deployment
+  template. It contains only Terraform and provider requirements plus root, minimum-only, and exact
+  strategies. A protected semantic scorer evaluates allowed and rejected candidates and confirms
+  actual `~>`, `>=`, `=`, and `!=` operator coverage rather than treating `terraform validate` as
+  proof of range correctness.
+- Lab 29 is now a genuine test-authoring lab. The protected provider-free deployment configuration
+  replaces identity when a release changes, while the learner test contains only one plan. The
+  canonical four-run suite applies `v1`, applies `v2`, compares generated IDs across runs, proves a
+  steady `v2` plan retains the upgraded state, and attributes invalid syntax to the variable. The
+  protected verifier executes the suite and checks its run, command, assertion, cross-run, and
+  expected-failure coverage.
+
+The Lab 15 and 17 canonical runs exposed strict Terraform collection-type comparisons in two test
+assertions. Those assertions were corrected with explicit map/list conversions or exact per-field
+checks while retaining the same key set and values. No test requirement was removed or weakened.
+The frozen lab standard and `tools/labctl.py` required no change.
+
+### Starter gates
+
+Before canonical verification and again after starter restoration, each lab was reset and checked:
+
+```text
+python tools/labctl.py reset <lab-id>
+python tools/labctl.py check <lab-id>
+```
+
+All four starters passed format, initialization, and validation before failing at their intended
+protected stage:
+
+| Lab | Marker | Observed target failure |
+| --- | --- | --- |
+| 15 | `EXPECTED_S3_CONDITIONAL_CONFIGURATION_INCOMPLETE` | optional resources included `assets`, tag precedence was reversed, and outputs were lists |
+| 17 | `EXPECTED_CROSS_STACK_LOOKUP_INCOMPLETE` | both producer selections returned manually copied values |
+| 28 | `EXPECTED_CONSTRAINT_SEMANTICS_INCOMPLETE` | unsupported majors and 6.2.0 were allowed, the exact pin was wrong, and `~>`/`!=` were absent |
+| 29 | `EXPECTED_SEQUENTIAL_TEST_FLOW_INCOMPLETE` | only one passing plan existed, with no apply, state change, cross-run identity, or failure case |
+
+### Canonical solution gates
+
+Canonical edits were applied transiently and removed after verification. Every lab passed
+`python tools/labctl.py check <lab-id> --mode solution` twice with reset and clean status between
+runs:
+
+- Lab 15: `3 passed, 0 failed` for exact default behavior, the disabled boundary, and invalid
+  retention through AWS provider mocking.
+- Lab 17: `3 passed, 0 failed` for primary and alternate local producer states plus invalid input;
+  the protected data-source source contract also passed.
+- Lab 28: initialization selected AWS provider v6.54.0, root validation passed, and every protected
+  runtime, bounded, minimum, exact, and excluded candidate produced the expected result.
+- Lab 29: `4 passed, 0 failed`; sequential test state proved setup identity, replacement identity,
+  stable upgraded state, and the expected validation failure.
+
+### Reset, repeatability, and regression
+
+Between canonical runs, `python tools/labctl.py reset <lab-id>` removed initialization directories,
+dependency locks, and result records. `python tools/labctl.py status <lab-id>` reported
+`Generated artifacts: 0` and no recorded results for all four labs. The second canonical run
+reproduced every pass, and restored starters reproduced every expected marker.
+
+The aggregate learner-starter gate was then executed:
+
+```text
+python tools/labctl.py check --all
+```
+
+It covered 25 migrated labs and reported
+`Passed: 01, 02, 06, 07, 08, 09, 10, 11, 14, 15, 16, 17, 18, 20, 21, 22, 23, 24, 25, 27, 28, 29, 30, 31, 32`
+and `Failed: none`.
+
+### Cloud safety
+
+No real AWS apply, plan, authentication, data lookup, or API call was performed. Lab 15 used the
+Terraform AWS mock provider. Lab 17 used the built-in remote-state data source against committed
+synthetic state snapshots. Lab 28 initialized provider metadata only and contains no provider
+configuration or resource. Lab 29 used only the built-in `terraform_data` resource and Terraform
+Test-managed temporary state. No billable or persistent cloud resource was created.
+
+### Items not verified
+
+- Linux execution: **NOT VERIFIED**. This phase ran on Windows only. New scripts use `pathlib`,
+  subprocess argument lists, and no shell-specific commands.
+- Terraform versions other than v1.14.0: **NOT VERIFIED**. Only the installed v1.14.0 binary was
+  executed; manifests permit `>= 1.6, < 2.0`.
+- AWS provider versions other than v6.54.0: **NOT VERIFIED**. That version was selected from the
+  configured shared cache for mock tests and constraint initialization.
+- Real AWS S3 behavior: **NOT VERIFIED by design**. Lab 15 validates Terraform graph and provider
+  schema behavior through mocks and never contacts S3.
+- Real remote backends or live producer stacks: **NOT VERIFIED by design**. Lab 17 deliberately
+  validates the cross-stack contract with synthetic local state fixtures.
+
+### Remaining risks
+
+- Labs 15 and 28 require registry access or a populated AWS provider cache for initialization,
+  although neither needs credentials or service access.
+- AWS mock tests validate Terraform configuration and the selected provider schema, not AWS
+  service-side authorization, account policy, or lifecycle execution.
+- Lab 17's committed state fixtures use Terraform state format version 4; compatibility was
+  executed only with Terraform v1.14.0 in this phase.
+- Public behavioral cases expose required result shapes and candidate versions but do not include
+  canonical HCL expressions. Blind practice still depends on respecting protected paths.
+- Canonical implementations were verified transiently and are not retained on the learner-facing
+  branch; they must remain isolated in a future solution/grader branch.
+
 ## Phase 7 - Core Authoring Batch B
 
 Migration date: 2026-07-11

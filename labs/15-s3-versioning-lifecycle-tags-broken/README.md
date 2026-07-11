@@ -1,71 +1,91 @@
-# Lab 15 — S3 Versioning, Lifecycle, and Tags
+# Lab 15 - Conditional S3 Versioning, Lifecycle, Tags, and Outputs
 
-Practice a common AWS Terraform pattern: S3 buckets with conditional versioning, lifecycle rules, and consistent tags.
+## Scenario
 
-## Lab metadata
+An application portfolio defines S3 buckets by logical name. The current configuration creates optional resources for every bucket, gives common tags the wrong precedence, and returns positional outputs. Correct the model without contacting AWS.
 
-- **Lab type:** `correction`
-- **Tier:** `aws-wiring`
-- **Difficulty:** `medium`
-- **Success mode:** `plan`
-- **Estimated time:** `20 minutes`
-- **AWS cost risk:** `low`
-- **State mode:** `stateless`
+## Skills tested
 
+- Stable resource identity with `for_each`
+- Conditional versioning and lifecycle resources
+- Layered tag merging and override precedence
+- Map-shaped outputs
+- AWS mock-provider tests
 
-## What this lab is testing
-- aws_s3_bucket
-- aws_s3_bucket_versioning
-- aws_s3_bucket_lifecycle_configuration
-- merge for tags
-- filtered for_each
+## Difficulty and estimated time
+
+- Difficulty: medium
+- Estimated time: 25 minutes
+
+## Execution mode
+
+AWS provider schema planning through Terraform's mock provider.
+
+## Cloud credentials required
+
+No. Tests do not authenticate or call AWS APIs.
+
+## Cost risk
+
+None. The workflow creates mocked plans only.
+
+## Starting state
+
+All buckets have versioning and lifecycle resources, missing retention is replaced by seven days, common tags overwrite bucket tags, and outputs are lists.
+
+## Files allowed to edit
+
+- `starter/main.tf`
+
+## Files not allowed to edit
+
+- `starter/versions.tf`
+- `tests/`
+- `scripts/`
+- `lab.yaml`
 
 ## Tasks
-- create S3 buckets from structured input
-- enable versioning only for selected buckets
-- add lifecycle rules only where retention is configured
-- merge common tags with bucket-specific tags
-- output bucket names in a readable shape
 
-## Starting assumptions
-- bucket configuration is driven from structured input
-- not every bucket should receive versioning or lifecycle rules
-- common tags should be merged with bucket-specific tags
+1. Keep ordinary buckets keyed by every input map key.
+2. Create versioning only where `versioning` is true.
+3. Create lifecycle configuration only where `lifecycle_days` is set and retain the matching day value.
+4. Merge common and bucket-specific tags so the bucket layer wins collisions.
+5. Return exact keyed maps for bucket names, versioned buckets, and lifecycle retention.
 
-## Target end state
-- buckets are created from stable keyed input
-- versioning is enabled only where configured
-- lifecycle rules are created only where retention is configured
-- outputs are map-shaped and easy to read
+## Constraints
 
+- Preserve resource and output addresses.
+- Do not hardcode the protected scenario keys.
+- Do not introduce a real AWS plan or apply.
+- Do not edit or weaken protected tests.
+
+## Expected initial failure
+
+`python tools/labctl.py check 15` reports `EXPECTED_S3_CONDITIONAL_CONFIGURATION_INCOMPLETE` after format, init, and validation pass.
+
+## Validation commands
+
+```text
+python tools/labctl.py check 15
+python tools/labctl.py status 15
+```
 
 ## Success criteria
-- bucket resources are created from structured input with stable keys
-- versioning is applied only to the intended buckets
-- lifecycle configuration is applied only where retention is defined
-- common and bucket-specific tags are merged correctly
-- outputs are shaped as maps
-- the final terraform plan is clean
 
-## How to work this lab
+- Bucket keys exactly follow the input map.
+- Only selected buckets receive enabled versioning and lifecycle resources.
+- Lifecycle days remain paired with logical bucket keys.
+- Bucket tags override common tags.
+- All three outputs are exact maps, including empty conditional maps.
+- Invalid non-positive retention is rejected without cloud access.
 
-This repository uses a single public working branch:
+## Reset instructions
 
-- `main` — broken starting point
-
-Create your own working branch from `main`:
-
-```bash
-git switch -c my-solution
+```text
+python tools/labctl.py reset 15
 ```
 
-When you are done, run the normal Terraform workflow for the lab:
+## Limited hints
 
-```bash
-terraform init
-terraform validate
-terraform plan
-```
-
-## Why this lab matters
-The Terraform Pro exam expects you to model realistic AWS patterns and use stable iteration with conditional resources.
+- Build separate collections for each optional behavior.
+- Merge order determines which map wins a duplicate key.

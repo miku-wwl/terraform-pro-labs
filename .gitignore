@@ -5,6 +5,10 @@
 *.tfstate
 *.tfstate.*
 
+# Lab 17 commits synthetic producer snapshots as protected test fixtures.
+!labs/17-data-sources-cross-stack-broken/fixtures/network-primary.tfstate
+!labs/17-data-sources-cross-stack-broken/fixtures/network-secondary.tfstate
+
 # Crash log files
 crash.log
 crash.*.log

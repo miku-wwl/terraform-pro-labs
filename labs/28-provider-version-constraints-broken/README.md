@@ -1,57 +1,91 @@
-# Lab 28 - Provider Version Constraints
+# Lab 28 - Provider Version Constraint Semantics
 
-Practice selecting safe provider version constraints and understanding constraint semantics used in Terraform Professional scenarios.
+## Scenario
 
-## Lab metadata
+A team has overly broad Terraform and AWS provider requirements. Define three intentional strategies—a bounded production range with one excluded release, a minimum-only module range, and an exact reproduction pin—and prove what each accepts.
 
-- **Lab type:** `correction`
-- **Tier:** `operations-state`
-- **Difficulty:** `medium`
-- **Success mode:** `validate`
-- **Estimated time:** `15 minutes`
-- **AWS cost risk:** `none`
-- **State mode:** `stateless`
+## Skills tested
 
+- `required_version` and `required_providers`
+- Pessimistic `~>` bounds
+- Minimum `>=`, exact `=`, and exclusion `!=` semantics
+- Root versus reusable-module constraint intent
+- Candidate-version evaluation beyond `terraform validate`
 
-## What this lab is testing
-- constraint operators (~>, >=, =, !=)
-- root vs module versioning strategy
-- safe pinning and upgrade boundaries
+## Difficulty and estimated time
+
+- Difficulty: medium
+- Estimated time: 20 minutes
+
+## Execution mode
+
+Local initialization, validation, and deterministic semantic scoring.
+
+## Cloud credentials required
+
+No. Provider installation may use the registry or an existing cache, but no provider configuration or API call exists.
+
+## Cost risk
+
+None.
+
+## Starting state
+
+The runtime and provider ranges are too broad, while the exact example pins the wrong release. The previous unrelated environment-validation exercise has been removed.
+
+## Files allowed to edit
+
+- `starter/versions.tf`
+- `starter/examples/minimum/versions.tf`
+- `starter/examples/exact/versions.tf`
+
+## Files not allowed to edit
+
+- `fixtures/`
+- `scripts/`
+- `lab.yaml`
 
 ## Tasks
-- analyze the current provider constraint and its risk
-- replace it with a safer pessimistic or bounded strategy
-- justify the chosen constraint for team operations
 
+1. Bound Terraform CLI compatibility to the supported 1.x line beginning at 1.6.
+2. Bound the root AWS provider to the 6.x line while excluding the known-bad 6.2.0 release.
+3. Make the reusable minimum example accept AWS provider 6.0.0 and later.
+4. Make the reproduction example accept exactly AWS provider 6.54.0.
+5. Use and understand all four target operators: `~>`, `>=`, `=`, and `!=`.
 
+## Constraints
 
+- Keep `hashicorp/aws` as every provider source.
+- Do not add resources, provider configurations, or environment validation.
+- Do not edit the protected candidate matrix or scorer.
+- Equivalent comma-separated constraints are accepted when their behavior and operator coverage match.
+
+## Expected initial failure
+
+`python tools/labctl.py check 28` reports `EXPECTED_CONSTRAINT_SEMANTICS_INCOMPLETE` because unsupported major versions remain allowed and the exact example targets the wrong release.
+
+## Validation commands
+
+```text
+python tools/labctl.py check 28
+python tools/labctl.py status 28
+```
 
 ## Success criteria
-- invalid input values are rejected with variable validation where appropriate
-- unsafe configuration is blocked with a precondition where appropriate
-- advisory quality concerns are expressed with a check block where appropriate
-- `terraform validate` passes
-- `terraform plan` passes for the expected scenario(s)
 
-## How to work this lab
+- Terraform 1.6 through 1.x is allowed, while 1.5.9 and 2.0.0 are rejected.
+- The bounded root strategy allows safe 6.x candidates, rejects 5.x/7.x, and excludes 6.2.0.
+- The minimum strategy allows 6.0.0 and later, including 7.0.0.
+- The exact strategy allows only 6.54.0.
+- Initialization and validation pass, and semantic scoring covers all candidate versions.
 
-This repository uses a single public working branch:
+## Reset instructions
 
-- `main` — broken starting point
-
-Create your own working branch from `main`:
-
-```bash
-git switch -c my-solution
+```text
+python tools/labctl.py reset 28
 ```
 
-When you are done, run the normal Terraform workflow for the lab:
+## Limited hints
 
-```bash
-terraform init
-terraform validate
-terraform plan
-```
-
-## Why this lab matters
-The exam tests practical provider management choices that balance upgrade safety and maintainability.
+- A two-component pessimistic constraint has a different upper bound from a three-component one.
+- Multiple comma-separated constraints form an intersection.
