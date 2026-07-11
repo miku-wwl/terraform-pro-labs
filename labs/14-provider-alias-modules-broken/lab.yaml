@@ -1,0 +1,26 @@
+{
+  "schema_version": 1,
+  "id": 14,
+  "title": "Passing Aliased Providers into Child Modules",
+  "type": "aws-mock",
+  "tier": "aws-wiring",
+  "difficulty": "medium",
+  "estimated_minutes": 25,
+  "execution": {"mode": "aws-mock", "terraform_version": ">= 1.6, < 2.0", "requires_cloud_credentials": false, "creates_billable_resources": false, "backend": "local"},
+  "validation": {
+    "starter_expected_result": "fail",
+    "expected_failure_stage": "test",
+    "expected_error_category": "module-provider-mapping",
+    "expected_failing_test": "tests/public.tftest.hcl",
+    "expected_failure_marker": "EXPECTED_MODULE_PROVIDER_MAPPING_INCOMPLETE",
+    "solution_expected_result": "pass",
+    "commands": [
+      {"name": "format", "stage": "format", "argv": ["terraform", "fmt", "-check", "-recursive"]},
+      {"name": "init", "stage": "init", "argv": ["terraform", "init", "-backend=false", "-input=false"]},
+      {"name": "validate", "stage": "validate", "argv": ["terraform", "validate"]},
+      {"name": "mock module provider mapping", "stage": "test", "argv": ["{python}", "../scripts/verify_mapping.py"]}
+    ]
+  },
+  "editable_paths": ["starter/main.tf"],
+  "protected_paths": ["lab.yaml", "starter/versions.tf", "starter/modules/", "tests/", "scripts/"]
+}

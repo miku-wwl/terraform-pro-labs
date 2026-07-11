@@ -1,70 +1,90 @@
-# Lab 08 — IAM Chain and EC2
+# Lab 08 - IAM Role-to-EC2 Dependency Chain
 
-Practice building the IAM chain correctly and attaching it to an EC2 instance.
+## Scenario
 
-## Lab metadata
+An application instance needs an EC2 trust policy, managed permissions policy, role attachment, instance profile, and EC2 profile reference. The starter creates every object but breaks two links in that chain.
 
-- **Lab type:** `correction`
-- **Tier:** `aws-wiring`
-- **Difficulty:** `medium`
-- **Success mode:** `plan`
-- **Estimated time:** `20 minutes`
-- **AWS cost risk:** `low`
-- **State mode:** `stateless`
+## Skills tested
 
+- IAM trust and permission policy structure
+- Managed policy attachment to a role
+- IAM role to instance-profile wiring
+- EC2 instance-profile integration
+- AWS mock-provider graph testing
 
-## What this lab is testing
-- IAM trust policy
-- IAM permissions policy
-- role attachment
-- instance profile wiring
-- EC2 integration
+## Difficulty and estimated time
+
+- Difficulty: medium
+- Estimated time: 20 minutes
+
+## Execution mode
+
+`aws-mock`. The configuration uses a deterministic plan-only AMI ID and never queries or applies to AWS.
+
+## Cloud credentials required
+
+No.
+
+## Cost risk
+
+None; no real EC2 or IAM object is created.
+
+## Starting state
+
+Trust and permission documents are deterministic. The policy attachment targets a different role name, and the EC2 instance does not reference the instance profile.
+
+## Files allowed to edit
+
+- `starter/main.tf`
+
+## Files not allowed to edit
+
+- `starter/versions.tf`
+- `tests/`
+- `scripts/`
+- `lab.yaml`
 
 ## Tasks
-- fix the IAM trust policy
-- create a working permissions policy
-- attach the policy to the role correctly
-- create the instance profile
-- attach the instance profile to EC2
 
-## Starting assumptions
-- the IAM role, policy, instance profile, and EC2 instance must be wired together correctly
-- the trust policy controls who can assume the role
-- the instance profile is the bridge between IAM and EC2
+1. Preserve the EC2 trust relationship and scoped S3 permission document.
+2. Attach the managed policy to the declared application role.
+3. Preserve the role-to-instance-profile reference.
+4. Connect the EC2 instance to that instance profile.
+5. Keep all names driven by `name_prefix`.
 
-## Target end state
-- the trust policy is valid for EC2
-- the permissions policy is attached correctly
-- the instance profile is wired to the role
-- the EC2 instance uses the instance profile correctly
+## Constraints
 
+- Do not introduce an AMI, VPC, subnet, or account data lookup.
+- Do not replace references with repeated hardcoded names.
+- Do not add credentials or perform a real apply.
+- Do not edit protected tests.
+
+## Expected initial failure
+
+`python tools/labctl.py check 08` reports `EXPECTED_IAM_EC2_CHAIN_INCOMPLETE` because the attachment and instance-profile links do not form a complete dependency chain.
+
+## Validation commands
+
+```text
+python tools/labctl.py check 08
+python tools/labctl.py status 08
+```
 
 ## Success criteria
-- the IAM trust relationship is correct for EC2
-- the permissions policy is attached to the role correctly
-- the instance profile is created and referenced correctly
-- the EC2 resource is wired to the instance profile
-- the final terraform plan is clean
 
-## How to work this lab
+- The trust policy permits `ec2.amazonaws.com` to call `sts:AssumeRole`.
+- The managed policy has the exact S3 actions and two resource scopes.
+- Policy attachment, role, profile, and EC2 use direct Terraform references.
+- Alternate prefixes flow through every named object.
+- No AWS credentials, lookup, or API call is used.
 
-This repository uses a single public working branch:
+## Reset instructions
 
-- `main` — broken starting point
-
-Create your own working branch from `main`:
-
-```bash
-git switch -c my-solution
+```text
+python tools/labctl.py reset 08
 ```
 
-When you are done, run the normal Terraform workflow for the lab:
+## Limited hints
 
-```bash
-terraform init
-terraform validate
-terraform plan
-```
-
-## Why this lab matters
-The Terraform Pro exam expects you to understand resource relationships and wire AWS IAM resources together correctly under time pressure.
+- The instance profile is the bridge between an IAM role and EC2.
+- Referencing an upstream resource attribute also creates the graph dependency.

@@ -1,67 +1,88 @@
-# Lab 14 — Provider Aliases Through Modules
+# Lab 14 - Passing Aliased Providers into Child Modules
 
-Practice configuring aliased providers in the root module and passing them correctly into child modules.
+## Scenario
 
-## Lab metadata
+A protected child module expects both a default AWS provider and a local `aws.secondary` alias. The root module currently maps both child provider names to its default configuration, so the child never receives the secondary region provider.
 
-- **Lab type:** `correction`
-- **Tier:** `operations-state`
-- **Difficulty:** `medium`
-- **Success mode:** `plan`
-- **Estimated time:** `25 minutes`
-- **AWS cost risk:** `none`
-- **State mode:** `stateless`
+## Skills tested
 
+- Root provider aliases
+- Child-module `configuration_aliases`
+- Module `providers` mapping
+- Mock verification of provider identity across module boundaries
 
-## What this lab is testing
-- provider aliasing
-- configuration_aliases
-- passing providers into modules
-- multi-region module wiring
+## Difficulty and estimated time
+
+- Difficulty: medium
+- Estimated time: 25 minutes
+
+## Execution mode
+
+`aws-mock`. AWS provider schema and module wiring are planned without credentials or API calls.
+
+## Cloud credentials required
+
+No.
+
+## Cost risk
+
+None.
+
+## Starting state
+
+The child module correctly declares and uses `aws.secondary`. The root mapping sends the default provider under both child provider names.
+
+## Files allowed to edit
+
+- `starter/main.tf`
+
+## Files not allowed to edit
+
+- `starter/versions.tf`
+- `starter/modules/`
+- `tests/`
+- `scripts/`
+- `lab.yaml`
 
 ## Tasks
-- configure a default provider and an aliased provider
-- pass the aliased provider into a child module
-- declare configuration_aliases in the child module correctly
-- surface both regions clearly in outputs
 
-## Starting assumptions
-- provider configuration belongs in the root module, not in child modules
-- the child module should consume providers passed from the root
-- one region is handled by the default provider and another by an aliased provider
+1. Inspect the child's declared provider aliases and provider usage.
+2. Correct the root module call so each child provider name receives the matching root configuration.
+3. Preserve provider configuration in the root rather than adding provider blocks to the child.
+4. Verify the mapping with two distinguishable mock provider results.
 
-## Target end state
-- the root module configures both the default and aliased providers correctly
-- the child module receives the aliased provider through the module call
-- configuration_aliases is declared correctly in the child module
-- outputs clearly show both regions are wired as intended
+## Constraints
 
+- Do not modify the protected child module.
+- Do not remove `configuration_aliases` or the secondary data-source provider selection.
+- Do not duplicate child modules to avoid provider mapping.
+- Do not use credentials or real AWS data lookups.
+
+## Expected initial failure
+
+`python tools/labctl.py check 14` reports `EXPECTED_MODULE_PROVIDER_MAPPING_INCOMPLETE` because both child provider names resolve to the root default provider.
+
+## Validation commands
+
+```text
+python tools/labctl.py check 14
+python tools/labctl.py status 14
+```
 
 ## Success criteria
-- provider configuration remains in the root module
-- the aliased provider is passed into the child module correctly
-- the child module declares configuration_aliases correctly
-- the final terraform plan is clean and outputs prove the multi-region wiring
 
-## How to work this lab
+- The child retains `configuration_aliases = [aws.secondary]`.
+- The module call maps child `aws` to root `aws` and child `aws.secondary` to root `aws.secondary`.
+- Mock outputs prove the child used two distinct provider configurations.
+- No AWS credentials or API calls are used.
 
-This repository uses a single public working branch:
+## Reset instructions
 
-- `main` — broken starting point
-
-Create your own working branch from `main`:
-
-```bash
-git switch -c my-solution
+```text
+python tools/labctl.py reset 14
 ```
 
-When you are done, run the normal Terraform workflow for the lab:
+## Limited hints
 
-```bash
-terraform init
-terraform validate
-terraform plan
-```
-
-## Why this lab matters
-The Terraform Pro exam expects you to understand provider aliasing and module provider wiring under time pressure.
+- Keys in a module `providers` map are child-local provider names; values are caller configurations.
+- A provider alias is not inherited automatically by a child module.
