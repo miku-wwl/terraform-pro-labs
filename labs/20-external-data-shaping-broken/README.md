@@ -1,72 +1,90 @@
-# Lab 20 — External Data Shaping with JSON and CSV
+# Lab 20 - External JSON and CSV Data Shaping
 
-Practice decoding JSON and CSV input files, shaping them in locals, and creating resources from stable keyed data.
+## Scenario
 
-## Lab metadata
+An application catalog and bucket policy table arrive as JSON and CSV files. The starter decodes both files, but it retains positional identities and raw string-shaped CSV rows. Normalize the data before using it.
 
-- **Lab type:** `design`
-- **Tier:** `core-authoring`
-- **Difficulty:** `medium`
-- **Success mode:** `plan`
-- **Estimated time:** `25 minutes`
-- **AWS cost risk:** `low`
-- **State mode:** `stateless`
+## Skills tested
 
+- `file`, `jsondecode`, and `csvdecode`
+- Collection normalization and type conversion
+- Stable `for_each` keys
+- Map-shaped outputs and empty-input behavior
 
-## What this lab is testing
-- file()
-- jsondecode()
-- csvdecode()
-- locals for data shaping
-- stable keys for for_each
-- map-shaped outputs
+## Difficulty and estimated time
+
+- Difficulty: medium
+- Estimated time: 25 minutes
+
+## Execution mode
+
+Local Terraform authoring with deterministic fixtures and `terraform_data`.
+
+## Cloud credentials required
+
+No.
+
+## Cost risk
+
+None.
+
+## Starting state
+
+The starter reads the protected fixtures and filters disabled apps, but uses numeric identities, returns a list, and leaves decoded CSV fields as strings.
+
+## Files allowed to edit
+
+- `starter/main.tf`
+
+## Files not allowed to edit
+
+- `starter/versions.tf`
+- `fixtures/`
+- `tests/`
+- `scripts/`
+- `lab.yaml`
 
 ## Tasks
-- decode the JSON and CSV input files
-- normalize the external data in locals
-- build a stable map keyed by logical resource name
-- create resources with for_each instead of brittle index logic
-- shape outputs as readable maps
 
-## Starting assumptions
-- the lab repository includes both JSON and CSV input files
-- the starting configuration should read those files rather than hardcode the data
-- the decoded data needs to be reshaped before it is safe to use for resource creation
+1. Normalize enabled JSON app records into a map keyed by app name.
+2. Use that stable map for the app records and preserve keys in the output.
+3. Normalize CSV rows into a map keyed by bucket name.
+4. Convert non-empty lifecycle days to numbers and represent an empty field as `null`.
+5. Support the protected empty and boundary fixtures without special cases.
 
-## Target end state
-- JSON and CSV inputs are decoded correctly
-- locals are used to normalize the external data
-- resources are created from stable keyed data with for_each
-- outputs are shaped as readable maps
-- the final terraform plan is clean
+## Constraints
 
+- Read data from the selected fixture files; do not reproduce fixture content in HCL.
+- Do not use numeric or positional resource keys.
+- Do not edit protected fixtures or tests.
+- Keep the default workflow provider-free and local.
+
+## Expected initial failure
+
+`python tools/labctl.py check 20` reports `EXPECTED_EXTERNAL_DATA_SHAPING_INCOMPLETE` because the decoded results do not have the required stable map shapes or normalized CSV types.
+
+## Validation commands
+
+```text
+python tools/labctl.py check 20
+python tools/labctl.py status 20
+```
 
 ## Success criteria
-- jsondecode(file(...)) and csvdecode(file(...)) are used correctly
-- external data is normalized in locals before resource creation
-- resources are keyed with stable logical names
-- outputs are shaped as maps instead of brittle lists
-- the final terraform plan is clean
 
-## How to work this lab
+- Default app keys are exactly `assets` and `logs`.
+- App values retain the exact team and versioning data.
+- Bucket settings are keyed by name with numeric-or-null lifecycle days.
+- Empty JSON produces no app records and an empty map.
+- The zero-day CSV boundary remains numeric zero.
 
-This repository uses a single public working branch:
+## Reset instructions
 
-- `main` — broken starting point
-
-Create your own working branch from `main`:
-
-```bash
-git switch -c my-solution
+```text
+python tools/labctl.py reset 20
 ```
 
-When you are done, run the normal Terraform workflow for the lab:
+## Limited hints
 
-```bash
-terraform init
-terraform validate
-terraform plan
-```
-
-## Why this lab matters
-The Terraform Pro exam expects you to shape real input data into safe Terraform structures, not just handwrite resource blocks.
+- Decode first, then reshape into the collection used by `for_each`.
+- Normalize the empty CSV string before numeric conversion.

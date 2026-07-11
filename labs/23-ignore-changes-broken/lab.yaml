@@ -1,0 +1,26 @@
+{
+  "schema_version": 1,
+  "id": 23,
+  "title": "Precise ignore_changes Ownership Boundary",
+  "type": "authoring-local",
+  "tier": "core-authoring",
+  "difficulty": "medium",
+  "estimated_minutes": 20,
+  "execution": {"mode": "local", "terraform_version": ">= 1.6, < 2.0", "requires_cloud_credentials": false, "creates_billable_resources": false, "backend": "temporary local"},
+  "validation": {
+    "starter_expected_result": "fail",
+    "expected_failure_stage": "test",
+    "expected_error_category": "drift-boundary",
+    "expected_failing_test": "scripts/verify_drift_boundary.py",
+    "expected_failure_marker": "EXPECTED_IGNORE_CHANGES_BOUNDARY_INCOMPLETE",
+    "solution_expected_result": "pass",
+    "commands": [
+      {"name": "format", "stage": "format", "argv": ["terraform", "fmt", "-check", "-recursive"]},
+      {"name": "init", "stage": "init", "argv": ["terraform", "init", "-backend=false", "-input=false"]},
+      {"name": "validate", "stage": "validate", "argv": ["terraform", "validate"]},
+      {"name": "drift boundary behavior", "stage": "test", "argv": ["{python}", "../scripts/verify_drift_boundary.py"]}
+    ]
+  },
+  "editable_paths": ["starter/main.tf"],
+  "protected_paths": ["lab.yaml", "starter/versions.tf", "tests/", "scripts/"]
+}

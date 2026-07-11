@@ -1,57 +1,88 @@
-# Lab 21 - Dynamic Blocks
+# Lab 21 - Dynamic Nested Ingress Blocks
 
-Practice using dynamic nested blocks for repeated resource arguments and avoid brittle static duplication.
+## Scenario
 
-## Lab metadata
+A security group currently repeats two static ingress blocks even though ingress policy is supplied as structured input. Replace the duplication with input-driven nested blocks that work for any valid rule list.
 
-- **Lab type:** `correction`
-- **Tier:** `core-authoring`
-- **Difficulty:** `medium`
-- **Success mode:** `plan`
-- **Estimated time:** `20 minutes`
-- **AWS cost risk:** `low`
-- **State mode:** `stateless`
+## Skills tested
 
+- `dynamic` nested blocks and iterator scope
+- The distinction between resource `for_each` and nested-block repetition
+- Preserving object content in provider schema blocks
+- Terraform mock-provider tests
 
-## What this lab is testing
-- dynamic nested blocks
-- list(object) inputs
-- difference from resource for_each
+## Difficulty and estimated time
+
+- Difficulty: medium
+- Estimated time: 20 minutes
+
+## Execution mode
+
+AWS provider schema planning through Terraform's mock provider. No AWS API call is made.
+
+## Cloud credentials required
+
+No.
+
+## Cost risk
+
+None. Tests only create mocked plans.
+
+## Starting state
+
+The input type and validation are present, but the resource contains two hardcoded ingress blocks and therefore ignores alternate rule collections.
+
+## Files allowed to edit
+
+- `starter/main.tf`
+
+## Files not allowed to edit
+
+- `starter/versions.tf`
+- `tests/`
+- `scripts/`
+- `lab.yaml`
 
 ## Tasks
-- model repeated ingress rules from input data
-- replace static nested block duplication
-- finish with a clean terraform plan
 
+1. Replace the repeated static ingress blocks with one dynamic nested-block construct.
+2. Drive its repetition from `var.ingress_rules`.
+3. Preserve each rule's description, port, and CIDR in the generated provider block.
+4. Keep the fixed outbound rule and port validation intact.
 
+## Constraints
 
+- Do not create multiple security-group resources.
+- Do not retain static ingress blocks.
+- Do not hardcode the protected alternate test values.
+- Do not remove or edit lifecycle-independent protected tests.
+
+## Expected initial failure
+
+`python tools/labctl.py check 21` reports `EXPECTED_DYNAMIC_BLOCK_INCOMPLETE` because an alternate three-rule input still renders the two hardcoded blocks.
+
+## Validation commands
+
+```text
+python tools/labctl.py check 21
+python tools/labctl.py status 21
+```
 
 ## Success criteria
-- invalid input values are rejected with variable validation where appropriate
-- unsafe configuration is blocked with a precondition where appropriate
-- advisory quality concerns are expressed with a check block where appropriate
-- `terraform validate` passes
-- `terraform plan` passes for the expected scenario(s)
 
-## How to work this lab
+- Default input renders exactly two matching ingress blocks.
+- Alternate input renders exactly three blocks with exact descriptions, ports, and CIDRs.
+- Invalid ports are rejected.
+- The source uses a dynamic ingress construct and contains no static ingress duplication.
+- Validation performs no AWS authentication or API operation.
 
-This repository uses a single public working branch:
+## Reset instructions
 
-- `main` — broken starting point
-
-Create your own working branch from `main`:
-
-```bash
-git switch -c my-solution
+```text
+python tools/labctl.py reset 21
 ```
 
-When you are done, run the normal Terraform workflow for the lab:
+## Limited hints
 
-```bash
-terraform init
-terraform validate
-terraform plan
-```
-
-## Why this lab matters
-Dynamic blocks are a common Terraform Pro exam pattern when repeated nested arguments must be driven by input data.
+- A dynamic block has a collection expression, an iterator, and a content body.
+- Values inside the content body come from the current iterator element.

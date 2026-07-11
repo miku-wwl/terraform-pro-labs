@@ -268,7 +268,7 @@ def generated_artifacts(lab_dir: Path, manifest: dict[str, Any]) -> list[Path]:
         starter / "crash.log",
     ]
     candidates.extend(lab_dir.rglob(".terraform"))
-    candidates.extend(starter.rglob(".terraform.lock.hcl"))
+    candidates.extend(lab_dir.rglob(".terraform.lock.hcl"))
     candidates.extend(starter.rglob("terraform.tfstate"))
     candidates.extend(starter.rglob("terraform.tfstate.backup"))
     candidates.extend(starter.rglob("terraform.tfstate.d"))

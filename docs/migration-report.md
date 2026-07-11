@@ -529,3 +529,121 @@ observed summary was `Passed: 01, 02, 07, 10, 11, 16, 18, 25, 31` and `Failed: n
   canonical HCL expressions. Blind practice still depends on respecting protected paths.
 - Canonical implementations were verified transiently and are not retained on the learner-facing
   branch; they must remain isolated in a future solution/grader branch.
+
+## Phase 7 - Core Authoring Batch B
+
+Migration date: 2026-07-11
+
+Working branch: `main`
+
+Scope: Labs 20, 21, 22, and 23; their matrix and migration-report records; and one required
+`labctl` reset correction. No other lab, frozen standard, CI configuration, or later-phase
+artifact was modified.
+
+### Migration design
+
+- Lab 20 now reads four deterministic protected JSON/CSV fixtures. The valid starter deliberately
+  retains numeric app identities, list outputs, and raw CSV strings. Public tests require exact
+  stable maps, filtering, numeric-or-null conversion, empty JSON behavior, and a zero-day CSV
+  boundary. The lab uses only built-in `terraform_data`.
+- Lab 21 now keeps two static ingress blocks as the genuine defect. Terraform tests use an AWS mock
+  provider to inspect exact nested-block count and content for default and alternate collections,
+  plus invalid-port behavior. A protected source check requires one dynamic ingress construct and
+  rejects retained static ingress blocks. No AWS authentication or API request occurs.
+- Lab 22 now has one direct immutable-release replacement trigger. Its protected verifier applies
+  release `v1` in a temporary directory, plans `v2`, reads plan JSON, and distinguishes the
+  starter's exact `delete, create` order from the canonical `create, delete` order.
+- Lab 23 uses separate `local_file` schema fields because `terraform_data.input` is a single dynamic
+  value and did not preserve a verifiable nested ownership boundary. The starter uses
+  `ignore_changes = all`. The protected verifier injects permission-only and content-only state
+  drift, plans with refresh disabled so fixtures remain deterministic, and requires only permission
+  drift to be a no-op. The canonical lifecycle rule ignores only `file_permission`.
+
+The Lab 21 mock workflow revealed that root-level Terraform Test initialization creates a lab-root
+`.terraform.lock.hcl`. `tools/labctl.py` previously discovered lock files only below `starter/`.
+Reset discovery now scans the current lab directory for lock files; this is bounded to the selected
+lab and was required to satisfy the existing reset contract. The frozen lab standard was unchanged.
+
+### Starter gates
+
+For every lab, the following commands were run before and after canonical verification:
+
+```text
+python tools/labctl.py reset <lab-id>
+python tools/labctl.py check <lab-id>
+```
+
+All four starters passed format, initialization, and validation, then failed at the intended
+protected behavior stage:
+
+| Lab | Marker | Observed target failure |
+| --- | --- | --- |
+| 20 | `EXPECTED_EXTERNAL_DATA_SHAPING_INCOMPLETE` | app and CSV results remained positional/raw rather than normalized stable maps |
+| 21 | `EXPECTED_DYNAMIC_BLOCK_INCOMPLETE` | alternate three-rule input still rendered the two static default blocks |
+| 22 | `EXPECTED_CREATE_BEFORE_DESTROY_INCOMPLETE` | real replacement actions were exactly `delete, create` |
+| 23 | `EXPECTED_IGNORE_CHANGES_BOUNDARY_INCOMPLETE` | both permission and managed-content drift were hidden as no-op |
+
+### Canonical solution gates
+
+Canonical edits were applied transiently. Each lab passed
+`python tools/labctl.py check <lab-id> --mode solution` twice, with reset and clean status between
+runs:
+
+- Lab 20: 2 Terraform Test runs passed for exact default shaping and empty/zero boundaries.
+- Lab 21: 3 mock Terraform Test runs passed for default blocks, alternate exact count/content, and
+  invalid ports; the protected dynamic-source contract also passed.
+- Lab 22: stateful apply/plan inspection proved a genuine release replacement with exact
+  `create, delete` actions.
+- Lab 23: controlled plan inspection proved permission drift was no-op while content drift produced
+  reconciliation actions.
+
+Canonical changes were then removed, leaving only the learner-facing starters.
+
+### Reset, repeatability, and regression
+
+Between canonical runs, reset removed initialization directories, lock files, and recorded results;
+`python tools/labctl.py status <lab-id>` reported `Generated artifacts: 0` and no recorded results
+for every Phase 7 lab. Stateful lifecycle verification used temporary directories that were removed
+on exit.
+
+After starter restoration, all four expected failures were reproduced. The repository aggregate
+starter command was then run:
+
+```text
+python tools/labctl.py check --all
+```
+
+It covered 13 migrated labs and reported
+`Passed: 01, 02, 07, 10, 11, 16, 18, 20, 21, 22, 23, 25, 31` and `Failed: none`.
+
+### Cloud safety
+
+No real AWS apply, plan, credential lookup, data lookup, or API call was performed. Lab 21 used the
+Terraform mock provider only. Labs 20 and 22 used Terraform's built-in provider. Lab 23 used the
+local provider only inside a temporary directory. No billable resource or persistent lifecycle-test
+state was created.
+
+### Items not verified
+
+- Linux execution: **NOT VERIFIED**. This phase ran on Windows only. New scripts use `pathlib`,
+  subprocess argument lists, and temporary directories, but no Linux runner was available.
+- Terraform versions other than v1.14.0: **NOT VERIFIED**. Only Terraform v1.14.0 was executed;
+  manifests allow `>= 1.6, < 2.0`.
+- AWS provider versions other than v6.54.0 and local provider versions other than v2.9.0:
+  **NOT VERIFIED**. Those were the versions selected by the current shared provider cache.
+- Real AWS security-group behavior: **NOT VERIFIED by design**. Lab 21 validates AWS provider schema
+  planning through a mock and never contacts AWS.
+- Real external filesystem permission drift after refresh: **NOT VERIFIED by design**. Lab 23 uses
+  controlled state drift with refresh disabled to make the lifecycle boundary deterministic across
+  hosts rather than relying on platform-specific chmod behavior.
+
+### Remaining risks
+
+- Provider installation still requires registry access or a populated provider cache for Labs 21
+  and 23, although neither lab requires credentials or service access.
+- Mock-provider tests validate the selected provider schema and Terraform configuration behavior,
+  not AWS service-side authorization or quota behavior.
+- Public tests necessarily reveal expected result shapes and scenario values, but do not expose the
+  canonical HCL expressions. Blind practice still depends on respecting protected paths.
+- Canonical implementations were verified transiently and are not stored on the learner-facing
+  branch; they must remain isolated in a future solution/grader branch.
