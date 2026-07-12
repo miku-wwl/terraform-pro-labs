@@ -212,10 +212,14 @@ def load_manifest(lab_dir: Path) -> dict[str, Any]:
             raise ManifestError(f"{lab_dir.name}: backend labs require a backend mapping")
         backend = manifest["backend"]
         require_fields(backend, REQUIRED_BACKEND, f"{lab_dir.name}.backend")
-        if not backend["example_files"] or not all(
+        if not isinstance(backend["example_files"], list) or not all(
             isinstance(item, str) for item in backend["example_files"]
         ):
-            raise ManifestError(f"{lab_dir.name}.backend.example_files must be a non-empty list")
+            raise ManifestError(f"{lab_dir.name}.backend.example_files must be a list of paths")
+        if backend["real_init_opt_in"] and not backend["example_files"]:
+            raise ManifestError(
+                f"{lab_dir.name}.backend.example_files must be non-empty when real_init_opt_in is true"
+            )
         for relative in backend["example_files"]:
             relative_path = Path(relative)
             if (

@@ -42,7 +42,7 @@ source workspace is selected or changed by the verifier.
 
 - `lab.yaml`
 - `starter/versions.tf`
-- `scripts/` and `tests/`
+- `scripts/`
 
 ## Tasks
 

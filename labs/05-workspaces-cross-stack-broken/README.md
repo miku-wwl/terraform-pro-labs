@@ -39,7 +39,7 @@ The protected producer derives its network contract from its workspace. The cons
 
 ## Files not allowed to edit
 
-- `starter/variables.tf`, `starter/versions.tf`, `bootstrap/`, `scripts/`, `tests/`, and `lab.yaml`
+- `starter/variables.tf`, `starter/versions.tf`, `bootstrap/`, `scripts/`, and `lab.yaml`
 
 ## Tasks
 

@@ -39,7 +39,6 @@ The release marker and service record are separate resources. A marker update cu
 ## Files not allowed to edit
 
 - `starter/versions.tf`
-- `tests/`
 - `scripts/`
 - `lab.yaml`
 

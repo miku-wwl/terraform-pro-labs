@@ -57,7 +57,6 @@ The protected verifier uses one state across both stages.
 - `starter/refactor-stage/versions.tf`
 - `starter/modules/`
 - `scripts/`
-- `tests/`
 
 ## Tasks
 

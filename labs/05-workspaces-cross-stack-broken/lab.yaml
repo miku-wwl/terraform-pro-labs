@@ -32,5 +32,5 @@
     "owned_names": ["dev", "prod"]
   },
   "editable_paths": ["starter/main.tf"],
-  "protected_paths": ["lab.yaml", "bootstrap", "starter/versions.tf", "starter/variables.tf", "scripts", "tests"]
+  "protected_paths": ["lab.yaml", "bootstrap", "starter/versions.tf", "starter/variables.tf", "scripts"]
 }

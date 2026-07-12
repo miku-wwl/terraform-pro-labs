@@ -30,5 +30,5 @@
     "generated_paths": [".lab-state"]
   },
   "editable_paths": ["starter/import-stage/main.tf", "starter/refactor-stage/main.tf"],
-  "protected_paths": ["lab.yaml", "bootstrap", "starter/modules", "starter/import-stage/versions.tf", "starter/refactor-stage/versions.tf", "scripts", "tests"]
+  "protected_paths": ["lab.yaml", "bootstrap", "starter/modules", "starter/import-stage/versions.tf", "starter/refactor-stage/versions.tf", "scripts"]
 }

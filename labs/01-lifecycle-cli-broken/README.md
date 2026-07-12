@@ -40,7 +40,6 @@ The starter configuration is valid and can produce a normal create plan, but it 
 
 - `starter/versions.tf`
 - `lab.yaml`
-- `tests/`
 - `scripts/verify_prevent_destroy.py`
 
 ## Tasks

@@ -39,7 +39,6 @@ The password has no committed default and the intended secret-bearing outputs ar
 ## Files not allowed to edit
 
 - `starter/versions.tf`
-- `tests/`
 - `scripts/`
 - `lab.yaml`
 

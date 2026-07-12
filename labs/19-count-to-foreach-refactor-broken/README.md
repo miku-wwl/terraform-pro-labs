@@ -40,7 +40,7 @@ but no state-transition declarations.
 
 ## Files not allowed to edit
 
-- `lab.yaml`, `bootstrap/`, `scripts/`, and `tests/`
+- `lab.yaml`, `bootstrap/`, and `scripts/`
 - `starter/versions.tf`
 
 ## Tasks

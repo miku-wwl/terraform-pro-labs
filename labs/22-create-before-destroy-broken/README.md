@@ -39,7 +39,6 @@ None.
 ## Files not allowed to edit
 
 - `starter/versions.tf`
-- `tests/`
 - `scripts/`
 - `lab.yaml`
 

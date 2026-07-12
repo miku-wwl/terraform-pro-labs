@@ -39,7 +39,6 @@ The lifecycle rule is syntactically valid but ignores every field, including Ter
 ## Files not allowed to edit
 
 - `starter/versions.tf`
-- `tests/`
 - `scripts/`
 - `lab.yaml`
 

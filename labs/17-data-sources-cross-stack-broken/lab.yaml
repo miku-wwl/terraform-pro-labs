@@ -24,7 +24,7 @@
   "editable_paths": ["starter/main.tf"],
   "protected_paths": ["lab.yaml", "starter/versions.tf", "fixtures/", "tests/", "scripts/"],
   "backend": {
-    "example_files": ["fixtures/local-backend.hcl.example"],
+    "example_files": [],
     "init_metadata_paths": ["starter/.terraform"],
     "real_init_opt_in": false
   }

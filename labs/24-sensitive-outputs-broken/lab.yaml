@@ -22,5 +22,5 @@
     ]
   },
   "editable_paths": ["starter/main.tf"],
-  "protected_paths": ["lab.yaml", "starter/versions.tf", "tests/", "scripts/"]
+  "protected_paths": ["lab.yaml", "starter/versions.tf", "scripts/"]
 }

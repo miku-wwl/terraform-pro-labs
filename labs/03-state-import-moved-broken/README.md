@@ -40,7 +40,7 @@ None.
 ## Files not allowed to edit
 
 - `lab.yaml`, `bootstrap/`, `starter/modules/`, `starter/import-stage/versions.tf`,
-  `starter/refactor-stage/versions.tf`, `scripts/`, and `tests/`
+  `starter/refactor-stage/versions.tf`, and `scripts/`
 
 ## Tasks
 

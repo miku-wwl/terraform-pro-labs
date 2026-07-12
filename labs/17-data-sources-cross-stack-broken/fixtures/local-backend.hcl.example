@@ -1,2 +1,0 @@
-# Documentation-only example. Normal lab validation does not initialize this backend.
-path = "fixtures/network-primary.tfstate"
