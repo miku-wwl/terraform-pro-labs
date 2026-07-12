@@ -15,7 +15,12 @@ resource "random_id" "legacy" {
   byte_length = each.value
 }
 
-# TODO: Adopt every released record at its existing keyed address.
+import {
+  for_each = var.import_ids
+
+  to = random_id.legacy[each.key]
+  id = each.value
+}
 
 output "record_ids" {
   value = { for name, record in random_id.legacy : name => record.b64_url }

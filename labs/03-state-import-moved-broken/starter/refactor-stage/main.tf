@@ -16,7 +16,15 @@ module "record" {
   byte_length = each.value
 }
 
-# TODO: Preserve both keyed identities while moving them into module instances.
+moved {
+  from = random_id.legacy["api"]
+  to   = module.record["api"].random_id.this
+}
+
+moved {
+  from = random_id.legacy["worker"]
+  to   = module.record["worker"].random_id.this
+}
 
 output "record_ids" {
   value = { for name, record in module.record : name => record.id }
