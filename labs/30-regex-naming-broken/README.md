@@ -1,89 +1,89 @@
-# Lab 30 - Regex Naming Validation and Normalization
+# Lab 30：正则命名验证与规范化
 
-## Scenario
+## 场景
 
-A shared naming module accepts project identifiers, normalizes them for downstream resources, and appends an environment. The starter allows invalid leading/trailing characters and lengths, and it fails to normalize separators.
+共享命名模块接收项目标识符，将其规范化后供下游资源使用，并追加环境名称。starter 允许无效的开头字符、结尾字符和长度，而且没有规范化分隔符。
 
-## Skills tested
+## 考查技能
 
-- Anchored regex validation
-- Length and boundary rules
-- Case and separator normalization
-- `regexall` token extraction
+- 带首尾锚点的正则验证
+- 长度与边界规则
+- 大小写与分隔符规范化
+- 使用 `regexall` 提取词元
 
-## Difficulty and estimated time
+## 难度与预计时间
 
-- Difficulty: medium
-- Estimated time: 20 minutes
+- 难度：中等
+- 预计时间：20 分钟
 
-## Execution mode
+## 执行模式
 
-Provider-free local Terraform tests.
+不依赖 provider 的本地 Terraform 测试。
 
-## Cloud credentials required
+## 是否需要云凭据
 
-No.
+不需要。
 
-## Cost risk
+## 成本风险
 
-None.
+无。
 
-## Starting state
+## 初始状态
 
-The starter checks only the allowed character set and lowercases input. It does not enforce the complete naming grammar or convert separators to hyphens.
+starter 只检查允许使用的字符集并将输入转换为小写。它没有强制执行完整的命名语法，也没有将分隔符转换为连字符。
 
-## Files allowed to edit
+## 允许编辑的文件
 
 - `starter/main.tf`
 
-## Files not allowed to edit
+## 禁止编辑的文件
 
 - `starter/versions.tf`
 - `tests/`
 - `scripts/`
 - `lab.yaml`
 
-## Tasks
+## 任务
 
-1. Enforce a project name length from 3 through 24 characters.
-2. Require a leading letter and a trailing alphanumeric character.
-3. Permit letters, numbers, underscores, and hyphens only.
-4. Normalize case and runs of underscore/hyphen separators to one hyphen.
-5. Preserve token extraction and environment suffixing from the normalized value.
+1. 将项目名称长度限制为 3～24 个字符。
+2. 要求名称以字母开头、以字母或数字结尾。
+3. 只允许字母、数字、下划线和连字符。
+4. 统一大小写，并将连续的下划线/连字符分隔符规范化为一个连字符。
+5. 基于规范化后的值保留词元提取和环境后缀拼接行为。
 
-## Constraints
+## 约束
 
-- Use regex semantics for the naming grammar rather than enumerating protected examples.
-- Do not weaken environment validation.
-- Do not hardcode expected output values.
-- Do not edit protected tests.
+- 使用正则语义表达命名语法，不要枚举受保护的示例。
+- 不要削弱环境验证。
+- 不要硬编码预期输出值。
+- 不要编辑受保护的测试。
 
-## Expected initial failure
+## 预期初始失败
 
-`python tools/labctl.py check 30` reports `EXPECTED_REGEX_NAMING_INCOMPLETE` because normalization is incomplete and invalid leading, trailing, and length cases are accepted.
+`python tools/labctl.py check 30` 会报告 `EXPECTED_REGEX_NAMING_INCOMPLETE`，因为规范化不完整，而且无效的开头、结尾和长度情况仍会被接受。
 
-## Validation commands
+## 验证命令
 
 ```text
 python tools/labctl.py check 30
 python tools/labctl.py status 30
 ```
 
-## Success criteria
+## 成功标准
 
-- Valid mixed-case input with a consecutive mixed separator run normalizes to the exact expected name.
-- Both the 3-character and 24-character boundaries are accepted.
-- Leading digits or separators, trailing hyphens or underscores, illegal characters, and values below or above the length range are rejected.
-- Tokens and final environment-qualified names derive from normalized content.
-- Unsupported environments remain rejected.
+- 包含大小写混合字符及连续混合分隔符的有效输入会规范化为精确的预期名称。
+- 3 字符和 24 字符两个边界均被接受。
+- 以数字或分隔符开头、以连字符或下划线结尾、包含非法字符以及长度低于或高于范围的值都会被拒绝。
+- 词元和最终带环境限定的名称均来源于规范化后的内容。
+- 不受支持的环境仍会被拒绝。
 
-## Reset instructions
+## 重置说明
 
 ```text
 python tools/labctl.py reset 30
 ```
 
-## Limited hints
+## 有限提示
 
-- Anchor a naming grammar at both ends.
-- Terraform's string replacement can interpret a slash-delimited pattern as a regex.
+- 在命名语法的首尾都使用锚点。
+- Terraform 的字符串替换可以将由斜杠包围的模式解释为正则表达式。

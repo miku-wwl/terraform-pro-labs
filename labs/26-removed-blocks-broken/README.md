@@ -1,68 +1,60 @@
-# Lab 26 — Moved and Removed State Semantics
+# Lab 26：moved 与 removed 的状态语义
 
-## Scenario
+## 场景
 
-An existing service record is renamed in configuration. A separate legacy attachment must leave
-Terraform management while the externally owned object is retained. These are different state
-transitions and must be expressed separately.
+现有服务记录在配置中被重命名。另一个旧版附件必须退出 Terraform 管理，但由外部拥有的对象需要保留。这是两种不同的状态转换，必须分别表达。
 
-## Skills tested
+## 考查技能
 
-- `moved` address transitions
-- `removed` configuration removal
-- `destroy = false` and the plan `forget` action
-- plan JSON, state list, and final no-op verification
+- 使用 `moved` 转换资源地址
+- 使用 `removed` 从配置中移除资源
+- `destroy = false` 与计划中的 `forget` 动作
+- 通过计划 JSON、状态列表和最终空操作计划进行验证
 
-## Difficulty and estimated time
+## 难度与预计时间
 
-Medium, about 30 minutes.
+难度：中等，预计约 30 分钟。
 
-## Execution mode
+## 执行模式
 
-Seeded isolated local state using built-in `terraform_data`.
+使用内置 `terraform_data`，并采用经过 seed 初始化的隔离本地状态。
 
-## Cloud credentials required
+## 是否需要云凭据
 
-None.
+不需要。
 
-## Cost risk
+## 成本风险
 
-None.
+无。
 
-## Starting state
+## 初始状态
 
-The protected old configuration creates `terraform_data.service_old` and
-`terraform_data.legacy_attachment`. The starter contains only the renamed service resource and no
-transition declarations.
+受保护的旧配置创建 `terraform_data.service_old` 和 `terraform_data.legacy_attachment`。starter 只包含重命名后的服务资源，没有任何转换声明。
 
-## Files allowed to edit
+## 允许编辑的文件
 
 - `starter/main.tf`
 
-## Files not allowed to edit
+## 禁止编辑的文件
 
-- `lab.yaml`, `bootstrap/`, and `scripts/`
+- `lab.yaml`、`bootstrap/` 和 `scripts/`
 - `starter/versions.tf`
 
-## Tasks
+## 任务
 
-1. Preserve the service identity at `terraform_data.service` through an address move.
-2. Remove the legacy attachment from state without planning destruction.
-3. Finish with only the service address and a no-op plan.
+1. 通过地址移动，将服务身份保留在 `terraform_data.service`。
+2. 从状态中移除旧版附件，但不得计划销毁它。
+3. 最终状态中只保留服务地址，并得到空操作计划。
 
-## Constraints
+## 约束
 
-Do not delete state, use CLI state-move/remove commands, retain the legacy resource block, or allow
-any create/delete action. The attachment must use removal semantics that explicitly retain the
-underlying object.
+不要删除状态，不要使用 CLI 的状态移动或移除命令，不要保留旧版资源块，也不要允许任何 create/delete 动作。附件必须使用明确保留底层对象的移除语义。
 
-## Expected initial failure
+## 预期初始失败
 
-After seeding, `python tools/labctl.py check 26` reports
-`EXPECTED_MOVED_REMOVED_REFACTOR_INCOMPLETE`; the starter plans service creation and both old
-resources' destruction.
+完成种子初始化后，`python tools/labctl.py check 26` 会报告 `EXPECTED_MOVED_REMOVED_REFACTOR_INCOMPLETE`；starter 会计划创建服务，并销毁两个旧资源。
 
-## Validation commands
+## 验证命令
 
 ```text
 python tools/labctl.py reset 26
@@ -70,23 +62,22 @@ python tools/labctl.py seed 26
 python tools/labctl.py check 26
 ```
 
-## Success criteria
+## 成功标准
 
-- old state initially contains both protected addresses;
-- the renamed service has an exact no-op `previous_address` mapping;
-- the attachment has the exact `forget` action, not `delete`;
-- no create/delete action occurs;
-- final state contains only `terraform_data.service`, its value is unchanged, and plan is no-op.
+- 初始旧状态包含两个受保护的地址；
+- 重命名后的服务具有精确的空操作 `previous_address` 映射；
+- 附件的动作必须精确为 `forget`，而不是 `delete`；
+- 不发生任何 create/delete 动作；
+- 最终状态只包含 `terraform_data.service`，其值保持不变，且计划为空操作。
 
-## Reset instructions
+## 重置说明
 
 ```text
 python tools/labctl.py reset 26
 ```
 
-Reset removes only Lab 26's generated state, plans, initialization files, and results.
+重置只会删除 Lab 26 生成的状态、计划、初始化文件和结果。
 
-## Limited hints
+## 有限提示
 
-A rename still manages the same object. A removal stops managing an object. Only one of those
-transitions needs a lifecycle setting controlling whether Terraform destroys the object.
+重命名后管理的仍是同一个对象；移除则意味着停止管理某个对象。这两种转换中，只有一种需要通过生命周期设置来控制 Terraform 是否销毁对象。

@@ -1,91 +1,91 @@
-# Lab 28 - Provider Version Constraint Semantics
+# Lab 28：Provider 版本约束语义
 
-## Scenario
+## 场景
 
-A team has overly broad Terraform and AWS provider requirements. Define three intentional strategies—a bounded production range with one excluded release, a minimum-only module range, and an exact reproduction pin—and prove what each accepts.
+某团队对 Terraform 和 AWS provider 的版本要求过于宽泛。请定义三种有明确意图的策略：排除一个版本的有界生产范围、只有最低版本的模块范围，以及用于精确复现的固定版本，并证明每种策略会接受哪些版本。
 
-## Skills tested
+## 考查技能
 
-- `required_version` and `required_providers`
-- Pessimistic `~>` bounds
-- Explicit runtime `>=`/`<` bounds, exact `=`, and exclusion `!=` semantics
-- Root versus reusable-module constraint intent
-- Candidate-version evaluation beyond `terraform validate`
+- `required_version` 与 `required_providers`
+- 悲观约束 `~>` 的边界
+- 显式运行时 `>=`/`<` 边界、精确 `=` 和排除 `!=` 的语义
+- 根模块与可复用模块的约束意图
+- 超越 `terraform validate` 的候选版本求值
 
-## Difficulty and estimated time
+## 难度与预计时间
 
-- Difficulty: medium
-- Estimated time: 20 minutes
+- 难度：中等
+- 预计时间：20 分钟
 
-## Execution mode
+## 执行模式
 
-Local initialization, validation, and deterministic semantic scoring.
+本地初始化、验证和确定性语义评分。
 
-## Cloud credentials required
+## 是否需要云凭据
 
-No. Provider installation may use the registry or an existing cache, but no provider configuration or API call exists.
+不需要。安装 provider 时可能会访问 registry 或使用现有缓存，但配置中没有 provider 配置或 API 调用。
 
-## Cost risk
+## 成本风险
 
-None.
+无。
 
-## Starting state
+## 初始状态
 
-The runtime and provider ranges are too broad, while the exact example pins the wrong release. The previous unrelated environment-validation exercise has been removed.
+运行时和 provider 的版本范围过于宽泛，而精确版本示例固定到了错误版本。此前无关的环境验证练习已被移除。
 
-## Files allowed to edit
+## 允许编辑的文件
 
 - `starter/versions.tf`
 - `starter/examples/minimum/versions.tf`
 - `starter/examples/exact/versions.tf`
 
-## Files not allowed to edit
+## 禁止编辑的文件
 
 - `fixtures/`
 - `scripts/`
 - `lab.yaml`
 
-## Tasks
+## 任务
 
-1. Bound Terraform CLI compatibility to the supported 1.x line beginning at 1.6.
-2. Bound the root AWS provider to the 6.x line while excluding the known-bad 6.2.0 release.
-3. Make the reusable minimum example accept AWS provider 6.0.0 and later.
-4. Make the reproduction example accept exactly AWS provider 6.54.0.
-5. Use and understand all five target operators: `~>`, `>=`, `<`, `=`, and `!=`.
+1. 将 Terraform CLI 兼容范围限制为从 1.6 开始、受支持的 1.x 系列。
+2. 将根模块的 AWS provider 限制为 6.x 系列，同时排除已知存在问题的 6.2.0。
+3. 让可复用的最低版本示例接受 AWS provider 6.0.0 及以上版本。
+4. 让复现示例只接受 AWS provider 6.54.0。
+5. 使用并理解全部五种目标运算符：`~>`、`>=`、`<`、`=` 和 `!=`。
 
-## Constraints
+## 约束
 
-- Keep `hashicorp/aws` as every provider source.
-- Do not add resources, provider configurations, or environment validation.
-- Do not edit the protected candidate matrix or scorer.
-- Equivalent comma-separated constraints are accepted when their behavior and operator coverage match.
+- 所有 provider 的 source 均保持为 `hashicorp/aws`。
+- 不要添加资源、provider 配置或环境验证。
+- 不要编辑受保护的候选版本矩阵或评分器。
+- 只要行为和运算符覆盖符合要求，可以使用等价的逗号分隔约束。
 
-## Expected initial failure
+## 预期初始失败
 
-`python tools/labctl.py check 28` reports `EXPECTED_CONSTRAINT_SEMANTICS_INCOMPLETE` because unsupported major versions remain allowed and the exact example targets the wrong release.
+`python tools/labctl.py check 28` 会报告 `EXPECTED_CONSTRAINT_SEMANTICS_INCOMPLETE`，因为不受支持的主版本仍被允许，而且精确版本示例指向了错误版本。
 
-## Validation commands
+## 验证命令
 
 ```text
 python tools/labctl.py check 28
 python tools/labctl.py status 28
 ```
 
-## Success criteria
+## 成功标准
 
-- Terraform 1.6 through high future 1.x candidates is allowed, while early 1.x, adjacent pre-1.6 values, 2.0.x, and later majors are rejected.
-- The bounded root strategy allows current and high future safe 6.x candidates, rejects 5.x/7.x, and excludes only 6.2.0.
-- The minimum strategy allows 6.0.0 and much later majors.
-- The exact strategy allows only 6.54.0.
-- Each strategy uses its intended operators, and semantic scoring covers all candidate versions.
+- 允许 Terraform 1.6 到未来较高的 1.x 候选版本，同时拒绝较早的 1.x、与 1.6 相邻但更早的版本、2.0.x 及更高主版本。
+- 有界根模块策略允许当前和未来较高的安全 6.x 候选版本，拒绝 5.x/7.x，并且只排除 6.2.0。
+- 最低版本策略允许 6.0.0 和更高主版本。
+- 精确版本策略只允许 6.54.0。
+- 每种策略都使用预期的运算符，语义评分覆盖全部候选版本。
 
-## Reset instructions
+## 重置说明
 
 ```text
 python tools/labctl.py reset 28
 ```
 
-## Limited hints
+## 有限提示
 
-- A two-component pessimistic constraint has a different upper bound from a three-component one.
-- Multiple comma-separated constraints form an intersection.
+- 由两个版本分量组成的悲观约束与三个版本分量组成的悲观约束具有不同的上界。
+- 多个以逗号分隔的约束取交集。

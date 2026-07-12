@@ -1,95 +1,95 @@
-# Lab 02 - Dynamic Configuration with Stable Iteration
+# Lab 02：使用稳定迭代的动态配置
 
-## Scenario
+## 场景
 
-A platform team maintains a catalog of local storage records. The current configuration uses positional `count`, creates optional settings for every record, and returns list-shaped results. Refactor it so logical names remain stable when entries change and optional settings exist only where requested.
+平台团队维护着一份本地存储记录目录。当前配置使用基于位置的 `count`，为每条记录都创建可选设置，并返回列表形态的结果。请重构该配置，使条目发生变化时逻辑名称仍然稳定，并且只在明确请求时创建可选设置。
 
-## Skills tested
+## 考查技能
 
-- Stable `for_each` iteration over structured input
-- Filtering conditional managed objects
-- Merging shared and item-specific metadata
-- Shaping outputs as maps keyed by logical name
+- 对结构化输入使用稳定的 `for_each` 迭代
+- 筛选需要按条件创建的托管对象
+- 合并共享元数据与条目专属元数据
+- 将输出塑造成以逻辑名称为键的 map
 
-## Difficulty and estimated time
+## 难度与预计时间
 
-- Difficulty: medium
-- Estimated time: 25 minutes
+- 难度：中等
+- 预计时间：25 分钟
 
-## Execution mode
+## 执行模式
 
-Local Terraform authoring with the built-in `terraform_data` resource.
+使用内置 `terraform_data` 资源进行本地 Terraform 配置编写。
 
-## Cloud credentials required
+## 是否需要云凭据
 
-No. No cloud provider is used.
+不需要。本 Lab 不使用任何云 provider。
 
-## Cost risk
+## 成本风险
 
-None. The validation path plans local logical resources only.
+无。验证路径只会规划本地逻辑资源。
 
-## Starting state
+## 初始状态
 
-The starter uses list input and positional `count`. Its optional setting records are not filtered, and its main output is a list.
+starter 使用列表输入和基于位置的 `count`。它没有筛选可选设置记录，并且主要输出为列表。
 
-## Files allowed to edit
+## 允许编辑的文件
 
 - `starter/main.tf`
 
-## Files not allowed to edit
+## 禁止编辑的文件
 
 - `starter/versions.tf`
 - `tests/public.tftest.hcl`
 - `scripts/verify_tests.py`
 - `lab.yaml`
 
-## Tasks
+## 任务
 
-1. Change the catalog input to a map of objects keyed by logical record name.
-2. Give the primary records stable logical addresses.
-3. Create versioning and retention setting records only for catalog entries that request them.
-4. Merge base tags with entry tags, with entry tags taking precedence.
-5. Return map-shaped summaries keyed by the same logical names.
+1. 将目录输入改为以逻辑记录名称为键的对象 map。
+2. 为主要记录提供稳定的逻辑地址。
+3. 只为明确请求版本控制和保留策略的目录条目创建相应的设置记录。
+4. 合并基础标签与条目标签，并让条目标签具有更高优先级。
+5. 返回以相同逻辑名称为键的 map 形态摘要。
 
-## Constraints
+## 约束
 
-- Do not use positional `count` for catalog iteration.
-- Disabled optional behavior must not produce a managed setting record.
-- Reject a retention period that is present but less than one day.
-- Do not add providers, credentials, external data, or cloud resources.
+- 不得使用基于位置的 `count` 迭代目录。
+- 被禁用的可选行为不得产生托管设置记录。
+- 如果提供了保留天数，则必须拒绝小于一天的值。
+- 不得添加 provider、凭据、外部数据或云资源。
 
-## Expected initial failure
+## 预期初始失败
 
-From the repository root, `python tools/labctl.py check 02` reaches the test stage and reports `EXPECTED_DYNAMIC_CONFIGURATION_INCOMPLETE`. The old implementation does not satisfy the stable map and filtering contract.
+在仓库根目录运行 `python tools/labctl.py check 02` 会到达测试阶段并报告 `EXPECTED_DYNAMIC_CONFIGURATION_INCOMPLETE`。旧实现不符合稳定 map 和筛选契约。
 
-## Validation commands
+## 验证命令
 
 ```bash
 python tools/labctl.py check 02
 python tools/labctl.py status 02
 ```
 
-## Success criteria
+## 成功标准
 
-- Default record keys are exactly `archive`, `assets`, and `logs`.
-- Those keys are the actual `terraform_data.record` instance keys, not only output-map keys.
-- Optional versioning records exist only for `archive` and `logs`.
-- Optional retention records exist only for `archive` and `logs`, with the requested day values.
-- An alternate catalog preserves its caller-supplied instance keys, values, and tag precedence.
-- An empty catalog produces empty maps without errors.
-- Invalid retention input is rejected.
-- Item tags override shared tags while required shared tags remain present.
+- 默认记录键恰好为 `archive`、`assets` 和 `logs`。
+- 这些键必须是实际的 `terraform_data.record` 实例键，而不仅仅是输出 map 的键。
+- 可选版本控制记录只为 `archive` 和 `logs` 存在。
+- 可选保留记录只为 `archive` 和 `logs` 存在，并使用请求的天数值。
+- 替代目录会保留调用方提供的实例键、值和标签优先级。
+- 空目录会产生空 map，且不发生错误。
+- 无效的保留输入会被拒绝。
+- 条目标签会覆盖共享标签，同时必需的共享标签仍然存在。
 
-## Reset instructions
+## 重置说明
 
 ```bash
 python tools/labctl.py reset 02
 ```
 
-Reset removes only Terraform caches, lock files, plans, state artifacts, and recorded check results owned by this lab.
+重置仅删除本 Lab 所属的 Terraform 缓存、锁文件、计划、状态产物和已记录的检查结果。
 
-## Limited hints
+## 有限提示
 
-- Resource identity should come from a business key, not a list position.
-- Derive the subsets before assigning them to optional resources.
-- A map comprehension can preserve the resource keys in an output.
+- 资源身份应来自业务键，而不是列表位置。
+- 在将子集赋给可选资源之前，先推导这些子集。
+- map 推导式可以在输出中保留资源键。

@@ -1,42 +1,42 @@
-# Lab 14 - Passing Aliased Providers into Child Modules
+# Lab 14：将带 alias 的 provider 传入子模块
 
-## Scenario
+## 场景
 
-A protected child module expects both a default AWS provider and a local `aws.secondary` alias. The root module currently maps both child provider names to its default configuration, so the child never receives the secondary region provider.
+一个受保护的子模块同时需要默认 AWS provider 和本地 `aws.secondary` alias。当前根模块把子模块的两个 provider 名称都映射到默认配置，因此子模块始终无法收到 secondary region provider。
 
-## Skills tested
+## 考查技能
 
-- Root provider aliases
-- Child-module `configuration_aliases`
-- Module `providers` mapping
-- Mock verification of provider identity across module boundaries
+- 根模块 provider alias
+- 子模块 `configuration_aliases`
+- 模块 `providers` 映射
+- 使用 mock 跨模块边界验证 provider 身份
 
-## Difficulty and estimated time
+## 难度与预计时间
 
-- Difficulty: medium
-- Estimated time: 25 minutes
+- 难度：中等
+- 预计时间：25 分钟
 
-## Execution mode
+## 执行模式
 
-`aws-mock`. AWS provider schema and module wiring are planned without credentials or API calls.
+`aws-mock`。在不使用凭据或 API 调用的情况下，对 AWS provider schema 和模块连接关系执行 plan。
 
-## Cloud credentials required
+## 是否需要云凭据
 
-No.
+不需要。
 
-## Cost risk
+## 成本风险
 
-None.
+无。
 
-## Starting state
+## 初始状态
 
-The child module correctly declares and uses `aws.secondary`. The root mapping sends the default provider under both child provider names.
+子模块已经正确声明并使用 `aws.secondary`。根模块映射却把默认 provider 同时传给了两个子模块 provider 名称。
 
-## Files allowed to edit
+## 允许编辑的文件
 
 - `starter/main.tf`
 
-## Files not allowed to edit
+## 禁止编辑的文件
 
 - `starter/versions.tf`
 - `starter/modules/`
@@ -44,47 +44,46 @@ The child module correctly declares and uses `aws.secondary`. The root mapping s
 - `scripts/`
 - `lab.yaml`
 
-## Tasks
+## 任务
 
-1. Inspect the child's declared provider aliases and provider usage.
-2. Correct the root module call so each child provider name receives the matching root configuration.
-3. Preserve provider configuration in the root rather than adding provider blocks to the child.
-4. Verify the mapping with two distinguishable mock provider results.
+1. 检查子模块声明的 provider alias 及其 provider 用法。
+2. 修正根模块调用，使每个子模块 provider 名称都收到与之匹配的根模块配置。
+3. 将 provider 配置保留在根模块中，不要向子模块添加 provider block。
+4. 使用两个可区分的 mock provider 结果验证映射。
 
-## Constraints
+## 约束
 
-- Do not modify the protected child module.
-- Do not remove `configuration_aliases` or the secondary data-source provider selection.
-- Do not duplicate child modules to avoid provider mapping.
-- Do not use credentials or real AWS data lookups.
+- 不要修改受保护的子模块。
+- 不要删除 `configuration_aliases` 或 secondary data source 的 provider 选择。
+- 不要通过复制子模块来规避 provider 映射。
+- 不要使用凭据或真实 AWS data lookup。
 
-## Expected initial failure
+## 预期初始失败
 
-`python tools/labctl.py check 14` reports `EXPECTED_MODULE_PROVIDER_MAPPING_INCOMPLETE` because both child provider names resolve to the root default provider.
+`python tools/labctl.py check 14` 会报告 `EXPECTED_MODULE_PROVIDER_MAPPING_INCOMPLETE`，因为两个子模块 provider 名称都解析到了根模块的默认 provider。
 
-## Validation commands
+## 验证命令
 
 ```text
 python tools/labctl.py check 14
 python tools/labctl.py status 14
 ```
 
-## Success criteria
+## 成功标准
 
-- The child retains `configuration_aliases = [aws.secondary]`.
-- The module call maps child `aws` to root `aws` and child `aws.secondary` to root `aws.secondary`.
-- The protected source contract verifies that exact map and that the editable root output still
-  delegates to the child instead of reproducing mock values.
-- Mock outputs prove the child used two distinct provider configurations.
-- No AWS credentials or API calls are used.
+- 子模块必须保留 `configuration_aliases = [aws.secondary]`。
+- 模块调用必须将子模块 `aws` 映射到根模块 `aws`，并将子模块 `aws.secondary` 映射到根模块 `aws.secondary`。
+- 受保护的源码契约必须验证这一精确映射，同时验证可编辑的根输出仍委托给子模块，而不是重新生成 mock 值。
+- Mock 输出必须证明子模块使用了两个不同的 provider 配置。
+- 不使用 AWS 凭据或 API 调用。
 
-## Reset instructions
+## 重置说明
 
 ```text
 python tools/labctl.py reset 14
 ```
 
-## Limited hints
+## 有限提示
 
-- Keys in a module `providers` map are child-local provider names; values are caller configurations.
-- A provider alias is not inherited automatically by a child module.
+- 模块 `providers` map 中的键是子模块本地的 provider 名称；值是调用方的配置。
+- 子模块不会自动继承 provider alias。

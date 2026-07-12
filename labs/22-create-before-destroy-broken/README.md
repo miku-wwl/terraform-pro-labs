@@ -1,88 +1,88 @@
-# Lab 22 - Create-Before-Destroy Replacement Ordering
+# Lab 22：先创建后销毁的替换顺序
 
-## Scenario
+## 场景
 
-Releases are immutable, so changing a release identifier must replace the local service record. The current replacement destroys the old record first. Configure lifecycle ordering appropriate for an availability-sensitive rollout.
+release 是不可变的，因此更改 release 标识符时必须替换本地服务记录。当前替换会先销毁旧记录。请为重视可用性的发布配置合适的 lifecycle 顺序。
 
-## Skills tested
+## 考查技能
 
-- Replacement versus in-place update
-- Lifecycle action ordering
-- Reading JSON plan actions
-- Recognizing the capacity and uniqueness tradeoffs of overlap
+- 替换与原地更新的区别
+- lifecycle 动作顺序
+- 读取 JSON plan 动作
+- 识别重叠期间容量与唯一性之间的权衡
 
-## Difficulty and estimated time
+## 难度与预计时间
 
-- Difficulty: medium
-- Estimated time: 20 minutes
+- 难度：中等
+- 预计时间：20 分钟
 
-## Execution mode
+## 执行模式
 
-Provider-free Terraform with state created only in a temporary verifier directory.
+不使用 provider 的 Terraform，仅在验证器临时目录中创建状态。
 
-## Cloud credentials required
+## 是否需要云凭据
 
-No.
+否。
 
-## Cost risk
+## 成本风险
 
-None.
+无。
 
-## Starting state
+## 初始状态
 
-`triggers_replace` makes a release change a genuine replacement, but the starter uses Terraform's default delete-then-create ordering.
+`triggers_replace` 使 release 变更成为真正的替换，但 starter 使用 Terraform 默认的先删除后创建顺序。
 
-## Files allowed to edit
+## 允许编辑的文件
 
 - `starter/main.tf`
 
-## Files not allowed to edit
+## 禁止编辑的文件
 
 - `starter/versions.tf`
 - `scripts/`
 - `lab.yaml`
 
-## Tasks
+## 任务
 
-1. Preserve the existing replacement trigger and resource address.
-2. Configure overlapping replacement so a new service record is planned before the old one is deleted.
-3. Preserve a no-op plan for unchanged inputs and an in-place update for a name-only change.
-4. Run the stateful verifier and inspect each plan action sequence.
+1. 保留现有替换触发器和资源地址。
+2. 配置重叠替换，使 plan 先创建新的服务记录，再删除旧记录。
+3. 对未更改的输入保留 no-op plan，并让仅名称变更保持为原地更新。
+4. 运行有状态验证器并检查每个 plan 的动作序列。
 
-## Constraints
+## 约束
 
-- Do not remove or weaken `triggers_replace`.
-- Do not convert the release change into an in-place update.
-- Do not change the protected verifier.
-- Keep the lab provider-free.
+- 不要移除或削弱 `triggers_replace`。
+- 不要将 release 变更转换为原地更新。
+- 不要更改受保护的验证器。
+- 保持该 Lab 不使用 provider。
 
-## Expected initial failure
+## 预期初始失败
 
-`python tools/labctl.py check 22` reports `EXPECTED_CREATE_BEFORE_DESTROY_INCOMPLETE`; the verifier observes `delete, create` actions after changing `release` from `v1` to `v2`.
+`python tools/labctl.py check 22` 会报告 `EXPECTED_CREATE_BEFORE_DESTROY_INCOMPLETE`；验证器观察到将 `release` 从 `v1` 更改为 `v2` 后产生了 `delete, create` 动作。
 
-## Validation commands
+## 验证命令
 
 ```text
 python tools/labctl.py check 22
 python tools/labctl.py status 22
 ```
 
-## Success criteria
+## 成功标准
 
-- A release change remains a replacement.
-- Plan JSON actions for `terraform_data.service` are exactly `create, delete`.
-- Unchanged inputs produce a no-op, while changing only `service_name` remains an `update`.
-- The protected source contract keeps `triggers_replace` scoped exactly to `var.release`.
-- The check builds and removes isolated temporary state.
-- No cloud operation or credential lookup occurs.
+- release 变更仍然是替换。
+- `terraform_data.service` 的 plan JSON 动作恰好为 `create, delete`。
+- 未更改的输入产生 no-op，而仅更改 `service_name` 仍为 `update`。
+- 受保护的源代码契约将 `triggers_replace` 的作用域精确限定为 `var.release`。
+- 检查会创建并删除隔离的临时状态。
+- 不发生云操作或凭据查询。
 
-## Reset instructions
+## 重置说明
 
 ```text
 python tools/labctl.py reset 22
 ```
 
-## Limited hints
+## 有限提示
 
-- Replacement causation and replacement ordering are separate concerns.
-- The order of actions in plan JSON reveals which object Terraform handles first.
+- 替换原因与替换顺序是两个不同的问题。
+- plan JSON 中的动作顺序揭示了 Terraform 首先处理哪个对象。

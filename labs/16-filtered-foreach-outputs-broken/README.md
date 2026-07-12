@@ -1,88 +1,88 @@
-# Lab 16 - Filtered for_each and Stable Map Outputs
+# Lab 16：过滤后的 for_each 与稳定的 map 输出
 
-## Scenario
+## 场景
 
-A service catalog contains enabled and disabled entries. The current root creates deployment records for every entry and exposes positional lists. Refactor only the selected subset while preserving logical service names in resource addresses and outputs.
+一个 service catalog 同时包含已启用和已禁用的条目。当前 root 为每个条目创建 deployment record，并公开基于位置的 list。重构配置，使其只处理选定子集，同时在资源地址和输出中保留逻辑 service 名称。
 
-## Skills tested
+## 考查技能
 
-- Filtering a map for `for_each`
-- Stable logical resource keys
-- Map-shaped outputs derived from managed resources
-- Empty-selection boundary behavior
+- 为 `for_each` 过滤 map
+- 稳定的逻辑资源键
+- 从托管资源派生 map 形态的输出
+- 空选择的边界行为
 
-## Difficulty and estimated time
+## 难度与预计时间
 
-- Difficulty: medium
-- Estimated time: 20 minutes
+- 难度：中等
+- 预计时间：20 分钟
 
-## Execution mode
+## 执行模式
 
-Local Terraform authoring with `terraform_data`.
+使用 `terraform_data` 在本地进行 Terraform 配置编写。
 
-## Cloud credentials required
+## 是否需要云凭据
 
-No.
+不需要。
 
-## Cost risk
+## 成本风险
 
-None.
+无。
 
-## Starting state
+## 初始状态
 
-The input is already a map, but the starter deploys disabled services too and converts results to lists, losing stable output keys.
+输入已经是 map，但 starter 也会部署已禁用的 service，并将结果转换为 list，从而丢失稳定的输出键。
 
-## Files allowed to edit
+## 允许编辑的文件
 
 - `starter/main.tf`
 
-## Files not allowed to edit
+## 禁止编辑的文件
 
 - `starter/versions.tf`
 - `tests/public.tftest.hcl`
 - `scripts/verify_tests.py`
 - `lab.yaml`
 
-## Tasks
+## 任务
 
-1. Derive the enabled subset of the service map.
-2. Iterate deployment records only over that subset.
-3. Return deployment identifiers and ports as maps keyed by service name.
-4. Keep behavior safe when no services are enabled.
+1. 从 service map 中派生已启用的子集。
+2. 仅遍历该子集来创建 deployment record。
+3. 将 deployment 标识符和端口作为以 service 名称为键的 map 返回。
+4. 确保没有任何 service 启用时行为仍然安全。
 
-## Constraints
+## 约束
 
-- Do not use `count` or positional indexing.
-- Do not create a deployment record for a disabled service.
-- Preserve input map keys without synthesizing numeric keys.
-- Reject ports outside the valid TCP range.
+- 不要使用 `count` 或基于位置的索引。
+- 不要为已禁用的 service 创建 deployment record。
+- 保留输入 map 的键，不要生成数字键。
+- 拒绝有效 TCP 范围之外的端口。
 
-## Expected initial failure
+## 预期初始失败
 
-`python tools/labctl.py check 16` reports `EXPECTED_FILTERED_FOREACH_INCOMPLETE` at the test stage because the starter includes a disabled key and returns lists.
+`python tools/labctl.py check 16` 会在测试阶段报告 `EXPECTED_FILTERED_FOREACH_INCOMPLETE`，因为 starter 包含一个已禁用的键并返回 list。
 
-## Validation commands
+## 验证命令
 
 ```bash
 python tools/labctl.py check 16
 python tools/labctl.py status 16
 ```
 
-## Success criteria
+## 成功标准
 
-- Default resource and output keys are exactly `api` and `worker`; the disabled record is absent.
-- Exact ports remain associated with their logical names.
-- Alternate logical names remain the exact resource identities regardless of declaration order.
-- An all-disabled input creates zero resources and produces empty maps.
-- An invalid port is rejected before planning resources.
+- 默认资源键和输出键必须恰好为 `api` 和 `worker`；不能包含已禁用的记录。
+- 精确端口必须继续与其逻辑名称关联。
+- 无论声明顺序如何，替代逻辑名称都必须保留为精确的资源标识。
+- 输入全部禁用时必须创建零个资源，并生成空 map。
+- 无效端口必须在规划资源前被拒绝。
 
-## Reset instructions
+## 重置说明
 
 ```bash
 python tools/labctl.py reset 16
 ```
 
-## Limited hints
+## 有限提示
 
-- Filter before assigning the collection to the resource.
-- Preserve `for_each` keys when shaping outputs.
+- 在将 collection 分配给资源之前先进行过滤。
+- 生成输出时保留 `for_each` 键。

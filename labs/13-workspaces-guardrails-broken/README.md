@@ -1,92 +1,84 @@
-# Lab 13 — Workspace-Aware Behavior and Production Guardrails
+# Lab 13：Workspace 感知行为与生产环境防护规则
 
-## Scenario
+## 场景
 
-One local root is deliberately reused across dev, staging, and prod workspaces. Configuration must
-select workspace-specific settings, while production blocks undersized capacity and unattended
-apply behavior.
+同一个本地 root 被刻意复用于 dev、staging 和 prod workspace。配置必须选择 workspace 特定的设置，同时生产环境必须阻止容量不足以及无人值守的 apply 行为。
 
-## Skills tested
+## 考查技能
 
 - `terraform.workspace`
-- workspace-isolated local state
-- environment-aware value selection
-- lifecycle preconditions as production guardrails
+- 由 workspace 隔离的本地 state
+- 根据环境选择值
+- 将 lifecycle precondition 用作生产环境 guardrail
 
-## Difficulty and estimated time
+## 难度与预计时间
 
-Medium, about 30 minutes.
+中等，约 30 分钟。
 
-## Execution mode
+## 执行模式
 
-Isolated local workspaces created only in a verifier-owned runtime copy.
+仅在 verifier 所有的运行时副本中创建隔离的本地 workspace。
 
-## Cloud credentials required
+## 是否需要云凭据
 
-None.
+不需要。
 
-## Cost risk
+## 成本风险
 
-None. The lab uses only built-in `terraform_data`.
+无。本 Lab 仅使用内置的 `terraform_data`。
 
-## Starting state
+## 初始状态
 
-The starter always selects dev settings and its production precondition is permissive. No learner
-source workspace is selected or changed by the verifier.
+starter 始终选择 dev 设置，并且生产环境 precondition 过于宽松。verifier 不会在学员源码目录中选择或切换任何 workspace。
 
-## Files allowed to edit
+## 允许编辑的文件
 
 - `starter/main.tf`
 
-## Files not allowed to edit
+## 禁止编辑的文件
 
 - `lab.yaml`
 - `starter/versions.tf`
 - `scripts/`
 
-## Tasks
+## 任务
 
-1. Derive the active environment from the selected workspace.
-2. Select the exact settings for dev, staging, and prod.
-3. Allow production only when capacity is one of the approved sizes (`t3.large`, `t3.xlarge`, or
-   `t3.2xlarge`) and `auto_approve` is false.
-4. Preserve the resource and output contracts.
+1. 根据当前选中的 workspace 推导活动环境。
+2. 为 dev、staging 和 prod 选择精确设置。
+3. 仅当容量为获准规格之一（`t3.large`、`t3.xlarge` 或 `t3.2xlarge`）且 `auto_approve` 为 false 时，才允许生产环境执行。
+4. 保留资源和输出契约。
 
-## Constraints
+## 约束
 
-Do not add cloud resources, switch workspaces in the learner source directory, or special-case the
-verifier paths. Use one production guardrail with the documented diagnostic.
+不要添加云资源，不要在学员源码目录中切换 workspace，也不要针对 verifier 路径编写特殊分支。使用一个生产环境 guardrail，并保留文档所述的诊断信息。
 
-## Expected initial failure
+## 预期初始失败
 
-`python tools/labctl.py check 13` reports `EXPECTED_WORKSPACE_GUARDRAIL_INCOMPLETE` when the staging
-or prod workspace still emits dev settings.
+当 staging 或 prod workspace 仍然输出 dev 设置时，`python tools/labctl.py check 13` 会报告 `EXPECTED_WORKSPACE_GUARDRAIL_INCOMPLETE`。
 
-## Validation commands
+## 验证命令
 
 ```text
 python tools/labctl.py reset 13
 python tools/labctl.py check 13
 ```
 
-## Success criteria
+## 成功标准
 
-- the runtime owns exactly default, dev, staging, and prod workspaces;
-- every environment has only `terraform_data.deployment` in its state;
-- workspace outputs match the exact replica, tier, and instance settings;
-- no plan contains a destroy and each post-apply plan is no-op;
-- prod accepts all three approved sizes, rejects `t3.micro`, `t3.small`, and an unapproved
-  non-small instance family, and rejects auto-approve independently.
+- 运行时必须恰好拥有 default、dev、staging 和 prod workspace；
+- 每个环境的 state 中只能包含 `terraform_data.deployment`；
+- workspace 输出必须与精确的 replica、tier 和 instance 设置一致；
+- 任何 plan 都不得包含 destroy，并且每次 apply 后的 plan 必须为 no-op；
+- prod 必须接受全部三种获准规格，拒绝 `t3.micro`、`t3.small` 和一个虽然不属于小规格、但仍未获准的其他 instance family，并独立拒绝 auto-approve。
 
-## Reset instructions
+## 重置说明
 
 ```text
 python tools/labctl.py reset 13
 ```
 
-Reset removes only Lab 13 runtime workspaces, state, plans, initialization files, and results.
+重置操作仅删除 Lab 13 的运行时 workspace、state、plan、初始化文件和结果。
 
-## Limited hints
+## 有限提示
 
-The default workspace is not one of the three exercised environments. The guardrail can combine
-the non-production case with all production requirements in one Boolean condition.
+default workspace 不属于本练习使用的三个环境。guardrail 可以在一个 Boolean 条件中组合非生产环境分支和全部生产环境要求。

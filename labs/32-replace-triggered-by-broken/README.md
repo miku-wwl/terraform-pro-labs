@@ -1,87 +1,87 @@
-# Lab 32 - Dependency-Driven Replacement with `replace_triggered_by`
+# Lab 32：使用 `replace_triggered_by` 实现依赖驱动替换
 
-## Scenario
+## 场景
 
-A service record does not directly store the release version, but operational policy requires a new service instance whenever its upstream release marker changes. Ordinary service-name edits should remain in-place updates.
+服务记录本身不直接存储发布版本，但运维策略要求：每当其上游发布标记发生变化时，都必须创建新的服务实例。普通的服务名称修改应保持为原地更新。
 
-## Skills tested
+## 考查技能
 
-- Lifecycle dependency replacement semantics
-- Difference between dependency ordering and replacement triggering
-- Plan JSON actions and `action_reason`
-- Scoping replacement to the intended upstream change
+- 生命周期依赖替换语义
+- 区分依赖顺序与替换触发
+- 计划 JSON 中的动作与 `action_reason`
+- 将替换范围限定到目标上游变更
 
-## Difficulty and estimated time
+## 难度与预计时间
 
-- Difficulty: medium
-- Estimated time: 20 minutes
+- 难度：中等
+- 预计时间：20 分钟
 
-## Execution mode
+## 执行模式
 
-Provider-free Terraform with state and plans isolated in a temporary verifier directory.
+不依赖 provider 的 Terraform，状态和计划隔离在验证器的临时目录中。
 
-## Cloud credentials required
+## 是否需要云凭据
 
-No.
+不需要。
 
-## Cost risk
+## 成本风险
 
-None.
+无。
 
-## Starting state
+## 初始状态
 
-The release marker and service record are separate resources. A marker update currently leaves the service unchanged because no replacement relationship is configured.
+发布标记和服务记录是两个独立资源。由于没有配置替换关系，当前更新标记时服务会保持不变。
 
-## Files allowed to edit
+## 允许编辑的文件
 
 - `starter/main.tf`
 
-## Files not allowed to edit
+## 禁止编辑的文件
 
 - `starter/versions.tf`
 - `scripts/`
 - `lab.yaml`
 
-## Tasks
+## 任务
 
-1. Configure the service lifecycle so a release-marker change replaces the service.
-2. Keep the marker itself as an in-place update.
-3. Keep direct service-name changes as in-place service updates.
-4. Verify the dependency-triggered replacement through the protected stateful plan check.
+1. 配置服务的生命周期，使发布标记发生变化时服务被替换。
+2. 标记本身仍保持为原地更新。
+3. 直接修改服务名称时，服务仍保持为原地更新。
+4. 通过受保护的有状态计划检查，验证由依赖触发的替换。
 
-## Constraints
+## 约束
 
-- Do not copy the release version into the service input merely to manufacture argument drift.
-- Do not force replacement for every service input change.
-- Preserve both resource addresses and the marker's normal update behavior.
-- Do not edit the protected verifier.
+- 不要为了制造参数漂移而将发布版本复制到服务输入中。
+- 不要对服务的每次输入变化都强制替换。
+- 保留两个资源地址以及标记的正常更新行为。
+- 不要编辑受保护的验证器。
 
-## Expected initial failure
+## 预期初始失败
 
-`python tools/labctl.py check 32` reports `EXPECTED_REPLACE_TRIGGER_INCOMPLETE` because changing the release marker does not replace the service.
+`python tools/labctl.py check 32` 会报告 `EXPECTED_REPLACE_TRIGGER_INCOMPLETE`，因为修改发布标记不会替换服务。
 
-## Validation commands
+## 验证命令
 
 ```text
 python tools/labctl.py check 32
 python tools/labctl.py status 32
 ```
 
-## Success criteria
+## 成功标准
 
-- Release-marker change actions are exactly an update.
-- The same plan replaces the service specifically with `replace_by_triggers` as its reason.
-- A service-name-only change remains an update, not a replacement.
-- The service input contains only its owned name; release data remains owned by the marker.
-- Verification uses temporary local state and no cloud operation.
+- 发布标记变更的动作精确为 update。
+- 同一计划以 `replace_by_triggers` 作为明确原因替换服务。
+- 仅修改服务名称时仍为 update，而不是 replacement。
+- 服务输入只包含它自己拥有的名称；发布数据仍由标记资源拥有。
+- 验证使用临时本地状态，不执行任何云操作。
 
-## Reset instructions
+## 重置说明
 
 ```text
 python tools/labctl.py reset 32
 ```
 
-## Limited hints
+## 有限提示
 
-- An ordinary dependency controls ordering but does not automatically force replacement.
-- Plan JSON identifies why Terraform selected a replacement action.
+- 普通依赖关系只控制顺序，并不会自动强制替换。
+- 计划 JSON 会指出 Terraform 选择替换动作的原因。

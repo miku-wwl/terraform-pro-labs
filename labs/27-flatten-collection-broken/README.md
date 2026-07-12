@@ -1,89 +1,89 @@
-# Lab 27 - Flattened Collections, Stable Keys, and Tag Merging
+# Lab 27：扁平化集合、稳定键与标签合并
 
-## Scenario
+## 场景
 
-Teams own nested application lists with global, team, and app tag layers. The starter keeps only the first app per team, keys records only by team, and applies tag precedence incorrectly. Produce a complete, stable catalog.
+各团队维护嵌套的应用列表，并分别具有全局、团队和应用三层标签。starter 只保留每个团队的第一个应用，仅按团队生成记录键，而且标签优先级错误。请生成一个完整且身份稳定的目录。
 
-## Skills tested
+## 考查技能
 
-- Nested collection comprehensions and `flatten`
-- Stable compound keys for `for_each`
-- Layered `merge` precedence
-- Empty nested collections and duplicate-name validation
+- 嵌套集合推导式与 `flatten`
+- 为 `for_each` 构造稳定的复合键
+- 分层 `merge` 的优先级
+- 空嵌套集合与重复名称验证
 
-## Difficulty and estimated time
+## 难度与预计时间
 
-- Difficulty: medium
-- Estimated time: 25 minutes
+- 难度：中等
+- 预计时间：25 分钟
 
-## Execution mode
+## 执行模式
 
-Provider-free local Terraform using `terraform_data`.
+使用 `terraform_data` 进行本地 Terraform 执行，不需要额外 provider。
 
-## Cloud credentials required
+## 是否需要云凭据
 
-No.
+不需要。
 
-## Cost risk
+## 成本风险
 
-None.
+无。
 
-## Starting state
+## 初始状态
 
-The input contract and duplicate validation are present. The transform emits at most one app per team and lets team tags overwrite app-specific values.
+输入契约和重复项验证已经存在。当前转换每个团队最多输出一个应用，并且允许团队标签覆盖应用专属值。
 
-## Files allowed to edit
+## 允许编辑的文件
 
 - `starter/main.tf`
 
-## Files not allowed to edit
+## 禁止编辑的文件
 
 - `starter/versions.tf`
 - `tests/`
 - `scripts/`
 - `lab.yaml`
 
-## Tasks
+## 任务
 
-1. Transform every nested app into one flat row.
-2. Build a stable map whose keys include both team and app identity.
-3. Merge tags in global, team, then app precedence order.
-4. Create one record per app and preserve exact keys in the output.
-5. Keep empty teams safe and same-named apps in different teams distinct.
+1. 将每个嵌套应用转换为一行扁平记录。
+2. 构建稳定映射，其键同时包含团队和应用身份。
+3. 按全局、团队、应用依次覆盖的顺序合并标签。
+4. 为每个应用创建一条记录，并在输出中保留精确的键。
+5. 安全处理空团队，并确保不同团队中的同名应用保持不同身份。
 
-## Constraints
+## 约束
 
-- Use the target flatten and merge constructs rather than hardcoded app records.
-- Do not use list indexes as resource identity.
-- Do not weaken duplicate-name validation.
-- Do not edit protected tests.
+- 使用目标 flatten 和 merge 构造，不要硬编码应用记录。
+- 不要使用列表索引作为资源身份。
+- 不要削弱重复名称验证。
+- 不要编辑受保护的测试。
 
-## Expected initial failure
+## 预期初始失败
 
-`python tools/labctl.py check 27` reports `EXPECTED_NESTED_COLLECTION_TRANSFORM_INCOMPLETE` because apps are missing, keys are unstable for the scenario, and tag precedence is wrong.
+`python tools/labctl.py check 27` 会报告 `EXPECTED_NESTED_COLLECTION_TRANSFORM_INCOMPLETE`，因为应用记录缺失、键在该场景下不稳定，而且标签优先级错误。
 
-## Validation commands
+## 验证命令
 
 ```text
 python tools/labctl.py check 27
 python tools/labctl.py status 27
 ```
 
-## Success criteria
+## 成功标准
 
-- Default keys are exactly `payments.ledger`, `platform.api`, and `platform.worker`.
-- Every nested app becomes one record.
-- App tags override team tags, and team tags override global tags.
-- Same-named apps in different teams retain distinct addresses.
-- Empty teams create nothing and duplicate names within one team are rejected.
+- 默认键精确为 `payments.ledger`、`platform.api` 和 `platform.worker`。
+- 每个嵌套应用都转换为一条记录。
+- 应用标签覆盖团队标签，团队标签覆盖全局标签。
+- 不同团队中的同名应用保留不同的资源地址。
+- 空团队不创建任何内容，同一团队内的重复名称会被拒绝。
 
-## Reset instructions
+## 重置说明
 
 ```text
 python tools/labctl.py reset 27
 ```
 
-## Limited hints
+## 有限提示
 
-- First produce nested row lists, then collapse one collection level.
-- Argument order determines which value wins a tag merge.
+- 先生成嵌套的记录行列表，再折叠一层集合。
+- 参数顺序决定标签合并时哪个值最终生效。

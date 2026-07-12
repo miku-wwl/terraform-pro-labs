@@ -1,47 +1,47 @@
-# Lab 25 - HCP Terraform Operations Decisions
+# Lab 25：HCP Terraform 运维决策
 
-## Scenario
+## 场景
 
-Northstar runs production infrastructure through HCP Terraform. Read `starter/SCENARIO.md`, then choose an operating model for source-driven runs, exceptional automation, pull-request plans, workspace dependencies, governance, permissions, and production approvals.
+Northstar 通过 HCP Terraform 运行生产基础设施。请阅读 `starter/SCENARIO.md`，然后为源代码驱动运行、例外自动化、拉取请求计划、工作区依赖关系、治理、权限和生产审批选择一种运维模型。
 
-This is a conceptual decision lab. It contains no Terraform configuration and does not contact HCP Terraform.
+这是一个概念决策 Lab。它不包含 Terraform 配置，也不会连接 HCP Terraform。
 
-## Skills tested
+## 考查技能
 
-- Distinguishing VCS-driven and API-driven runs
-- Using speculative plans for pull-request feedback
-- Directing run triggers between dependent workspaces
-- Selecting production policy enforcement and interpreting cost estimates
-- Separating plan, apply, and administrative permissions
-- Defining auto-apply and production approval boundaries
+- 区分 VCS 驱动运行与 API 驱动运行
+- 使用推测性计划为拉取请求提供反馈
+- 在相互依赖的工作区之间确定运行触发器的方向
+- 选择生产策略的执行模式并正确解读成本估算
+- 分离计划、应用和管理权限
+- 定义自动应用与生产审批的边界
 
-## Difficulty and estimated time
+## 难度与预计时间
 
-- Difficulty: hard
-- Estimated time: 30 minutes
+- 难度：困难
+- 预计时间：30 分钟
 
-## Execution mode
+## 执行模式
 
-- Mode: local conceptual scoring
-- Terraform CLI: not used
+- 模式：本地概念评分
+- Terraform CLI：不使用
 
-## Cloud credentials required
+## 是否需要云凭据
 
-No. The lab does not require HCP Terraform, AWS, or other cloud credentials.
+不需要。本 Lab 不需要 HCP Terraform、AWS 或其他云平台的凭据。
 
-## Cost risk
+## 成本风险
 
-None. Validation reads local Markdown and rubric files only.
+无。验证过程只读取本地 Markdown 和评分规则文件。
 
-## Starting state
+## 初始状态
 
-`starter/student-answer.md` contains eight `undecided` choices and placeholder rationale prompts. The public rubric describes what is scored but contains no canonical choices.
+`starter/student-answer.md` 包含八项值为 `undecided` 的决策以及用于填写理由的占位提示。公开评分规则说明了评分内容，但不包含标准选项。
 
-## Files allowed to edit
+## 允许编辑的文件
 
 - `starter/student-answer.md`
 
-## Files not allowed to edit
+## 禁止编辑的文件
 
 - `starter/SCENARIO.md`
 - `starter/QUESTIONS.md`
@@ -49,71 +49,71 @@ None. Validation reads local Markdown and rubric files only.
 - `scripts/score_answer.py`
 - `lab.yaml`
 
-## Tasks
+## 任务
 
-1. Read the scenario and all option definitions.
-2. Replace every `undecided` value with exactly one option ID from the corresponding question.
-3. Write a concise rationale under every matching decision heading that explains the selected option, addresses the public rubric focus, and connects it to scenario facts in your own words.
-4. Keep all decision IDs and Markdown headings unchanged so the scorer can locate them.
+1. 阅读场景和所有选项定义。
+2. 将每个 `undecided` 值替换为对应问题中的一个且仅一个选项 ID。
+3. 在每个对应的决策标题下编写简明理由：解释所选选项、回应公开评分重点，并用自己的语言将选择与场景事实联系起来。
+4. 保持所有决策 ID 和 Markdown 标题不变，以便评分器能够定位它们。
 
-## Constraints
+## 约束
 
-- Make one decision for every question; do not combine multiple option IDs.
-- Base the design on least privilege and an explicit production approval boundary.
-- Treat cost estimation as operational evidence, not as a complete billing guarantee.
-- Do not add Terraform, provider, token, organization, or workspace credentials.
+- 每个问题必须作出一个决策；不要组合多个选项 ID。
+- 设计必须基于最小权限原则，并明确生产审批边界。
+- 将成本估算视为运维证据，而不是完整的账单保证。
+- 不要添加 Terraform、provider、令牌、组织或工作区凭据。
 
-## Expected initial failure
+## 预期初始失败
 
-From the repository root, the unmodified starter fails the scoring stage with `EXPECTED_CONCEPTUAL_RESPONSE_INCOMPLETE` because decisions and rationales are intentionally blank.
+从仓库根目录运行时，未经修改的 starter 会在评分阶段以 `EXPECTED_CONCEPTUAL_RESPONSE_INCOMPLETE` 失败，因为决策和理由被有意留空。
 
-## Validation commands
+## 验证命令
 
-Run the repository gate from the repository root:
+在仓库根目录运行仓库门禁：
 
 ```bash
 python tools/labctl.py check 25
 ```
 
-To invoke the scorer directly:
+直接调用评分器：
 
 ```bash
 python labs/25-hcp-terraform-ops-broken/scripts/score_answer.py --rubric labs/25-hcp-terraform-ops-broken/rubric.yaml --answer labs/25-hcp-terraform-ops-broken/starter/student-answer.md
 ```
 
-## Success criteria
+## 成功标准
 
-- All eight operating decisions use valid option IDs.
-- The choices correctly distinguish routine VCS runs from exceptional API automation.
-- Pull requests use a speculative plan path that cannot apply.
-- Workspace dependency direction follows producer-to-consumer apply success.
-- Production policy, permissions, and auto-apply choices preserve an approval boundary.
-- Cost-estimation limitations are acknowledged.
-- Every decision has a rationale with locally verifiable evidence tying the selected option to the rubric focus and scenario, and the score meets the published threshold.
+- 八项运维决策全部使用有效的选项 ID。
+- 选项能够正确区分常规 VCS 运行与例外 API 自动化。
+- 拉取请求使用无法执行 apply 的推测性计划路径。
+- 工作区依赖方向遵循“生产者成功 apply 后触发消费者”。
+- 生产策略、权限和自动应用选项保留明确的审批边界。
+- 明确说明成本估算的局限性。
+- 每项决策都有理由，并提供可在本地验证的证据，将所选选项与评分重点及场景联系起来，且总分达到公开阈值。
 
-## Local scoring boundary
+## 本地评分边界
 
-The scorer verifies structured choices, minimum rationale length, lexical consistency with the option you selected, coverage of the public rubric focus and scenario, and some independent explanation beyond copied option text. These checks are applied identically to every option and do not expose canonical choices or require exact prose.
+评分器会验证结构化选项、理由的最小长度、理由与所选选项的词汇一致性、对公开评分重点和场景的覆盖，以及是否包含超出复制选项文本的独立解释。所有选项使用完全相同的检查方式，不会暴露标准选项，也不要求使用完全一致的表述。
 
-Local scoring cannot prove that free-form reasoning is nuanced, factually complete, or persuasive. A passing score means the response satisfies the deterministic practice rubric; semantic depth remains **NOT VERIFIED** without human review.
+本地评分无法证明自由文本推理足够细致、事实完整或具有说服力。通过评分表示回答满足确定性的练习评分规则；若没有人工审核，其语义深度仍为 **NOT VERIFIED**。
 
-## Reset instructions
+## 重置说明
 
 ```bash
 python tools/labctl.py reset 25
 ```
 
-Reset removes only recorded validation results. It deliberately preserves `student-answer.md`. To discard your own answer, use your version-control workflow explicitly.
+重置只会删除记录的验证结果，并会有意保留 `student-answer.md`。如需放弃自己的答案，请明确使用版本控制工作流处理。
 
-## Limited hints
+## 有限提示
 
-- A plan that cannot apply is useful before merge.
-- A dependency trigger points from the workspace that successfully applied to the workspace that consumes its results.
-- Permission to propose a run does not have to imply permission to apply it.
+- 合并前使用无法执行 apply 的计划很有价值。
+- 依赖触发器应从已成功 apply 的工作区指向使用其结果的工作区。
+- 拥有发起运行的权限，并不意味着必须拥有执行 apply 的权限。
 
-## Official references
+## 官方参考资料
 
-- [Run modes and options](https://developer.hashicorp.com/terraform/cloud-docs/workspaces/run/modes-and-options)
-- [Run triggers](https://developer.hashicorp.com/terraform/cloud-docs/workspaces/settings/run-triggers)
-- [Workspace permissions](https://developer.hashicorp.com/terraform/cloud-docs/users-teams-organizations/permissions/workspace)
-- [Workspace settings](https://developer.hashicorp.com/terraform/cloud-docs/workspaces/settings)
+- [运行模式与选项](https://developer.hashicorp.com/terraform/cloud-docs/workspaces/run/modes-and-options)
+- [运行触发器](https://developer.hashicorp.com/terraform/cloud-docs/workspaces/settings/run-triggers)
+- [工作区权限](https://developer.hashicorp.com/terraform/cloud-docs/users-teams-organizations/permissions/workspace)
+- [工作区设置](https://developer.hashicorp.com/terraform/cloud-docs/workspaces/settings)

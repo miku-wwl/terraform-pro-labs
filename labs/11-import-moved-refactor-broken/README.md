@@ -1,55 +1,55 @@
-# Lab 11 — Import, Moved Blocks, and Module Refactor
+# Lab 11：Import、moved block 与模块重构
 
-## Scenario
+## 场景
 
-An identifier was created by an old Terraform configuration and then released from its bootstrap state. Adopt that identity into a new learner state at its old root address. After proving the import, refactor the resource into the supplied child module without changing its identity or scheduling replacement.
+某个标识符由旧 Terraform 配置创建，随后从其 bootstrap state 中解除绑定。先将该标识符采用到新的学员 state 中，并保留其原有的根资源地址。确认 import 后，将资源重构到提供的子模块中，同时不得改变其标识，也不得计划 replacement。
 
-Import and refactor are deliberately separate stages. This avoids combining an import target and a moved source in one configuration transition.
+Import 与重构被刻意拆分为两个独立阶段，从而避免在一次配置转换中同时出现 import 目标和 moved 源地址。
 
-## Skills tested
+## 考查技能
 
-- Seeding and inspecting isolated Terraform state
-- Declarative import into an exact resource address
-- Moving a root resource address into a child module
-- Reading plan JSON and state addresses during a refactor
-- Proving identity continuity and a final no-op plan
+- 为隔离的 Terraform state 播种并进行检查
+- 以声明式 import 导入到精确的资源地址
+- 将根资源地址移动到子模块
+- 在重构期间读取 plan JSON 和 state 地址
+- 证明标识连续性并得到最终 no-op plan
 
-## Difficulty and estimated time
+## 难度与预计时间
 
-- Difficulty: hard
-- Estimated time: 35 minutes
+- 难度：困难
+- 预计时间：35 分钟
 
-## Execution mode
+## 执行模式
 
-- Mode: local state-refactor workflow
-- Backend: lab-owned local state under `.lab-state/`
-- Provider: HashiCorp `random`, a logical provider with no remote service
+- 模式：本地 state-refactor 工作流
+- Backend：位于 `.lab-state/` 下、归本 Lab 所有的本地 state
+- Provider：HashiCorp `random`，不访问远程服务的逻辑 provider
 
-## Cloud credentials required
+## 是否需要云凭据
 
-No. The workflow does not configure AWS or read any cloud credentials.
+不需要。该工作流不会配置 AWS，也不会读取任何云凭据。
 
-## Cost risk
+## 成本风险
 
-None. The seed and learner workflows operate only on local Terraform state.
+无。播种流程和学员工作流仅操作本地 Terraform state。
 
-## Starting state
+## 初始状态
 
-Run reset and seed before each attempt. The seed command copies `bootstrap/old-config` into the ignored `.lab-state/` work area, applies it, verifies the old address `random_id.legacy_record`, captures its import identifier, and removes that binding from bootstrap state. The identity is then ready for the learner's isolated import state.
+每次尝试前先执行 reset 和 seed。seed 命令会将 `bootstrap/old-config` 复制到已忽略的 `.lab-state/` 工作区，执行 apply，验证旧地址 `random_id.legacy_record`，捕获其 import 标识符，然后从 bootstrap state 中移除该绑定。此后，该标识可供学员隔离的 import state 使用。
 
-The learner workflow has two ordered configurations:
+学员工作流包含两个有序配置：
 
-1. `starter/import-stage` adopts the identity at the old root address.
-2. `starter/refactor-stage` changes the configuration shape to the supplied module.
+1. `starter/import-stage` 在旧的根地址采用该标识。
+2. `starter/refactor-stage` 将配置形态改为使用提供的模块。
 
-The protected verifier uses one state across both stages.
+受保护的 verifier 在两个阶段中使用同一个 state。
 
-## Files allowed to edit
+## 允许编辑的文件
 
 - `starter/import-stage/main.tf`
 - `starter/refactor-stage/main.tf`
 
-## Files not allowed to edit
+## 禁止编辑的文件
 
 - `lab.yaml`
 - `bootstrap/old-config/`
@@ -58,29 +58,29 @@ The protected verifier uses one state across both stages.
 - `starter/modules/`
 - `scripts/`
 
-## Tasks
+## 任务
 
-1. Reset and seed the lab, then inspect the old resource address printed by the seed workflow.
-2. In the import-stage configuration, declaratively adopt the generated identifier at the existing root resource address. Use the supplied `import_id` variable; do not hardcode a generated value.
-3. Run the solution-mode check and confirm the imported state contains only the old root address before it proceeds to the refactor gate.
-4. In the refactor-stage configuration, preserve that state identity while moving the resource into the supplied child module.
-5. Run the complete check and confirm the target module address, zero create/delete actions, unchanged identifier, and final no-op plan.
+1. 重置并播种本 Lab，然后检查 seed 工作流输出的旧资源地址。
+2. 在 import-stage 配置中，以声明方式在现有根资源地址采用生成的标识符。使用提供的 `import_id` 变量；不要硬编码生成值。
+3. 运行 solution-mode 检查，确认 imported state 在进入重构 gate 前仅包含旧的根地址。
+4. 在 refactor-stage 配置中，将资源移入提供的子模块，同时保留该 state 标识。
+5. 运行完整检查，确认目标模块地址、零 create/delete action、标识符不变以及最终 no-op plan。
 
-## Constraints
+## 约束
 
-- Complete the declarative import before the module refactor.
-- Use configuration-driven address migration for the refactor; do not substitute an imperative `terraform state mv` command.
-- Do not change resource type, byte length, module/resource names, or protected verifier files.
-- Do not hardcode the generated identifier or copy state files between stages.
-- Do not add AWS or any other cloud provider.
+- 必须先完成声明式 import，再进行模块重构。
+- 使用配置驱动的地址迁移完成重构；不要用命令式 `terraform state mv` 命令替代。
+- 不要更改资源类型、字节长度、模块或资源名称，也不要更改受保护的 verifier 文件。
+- 不要硬编码生成的标识符，也不要在阶段之间复制 state 文件。
+- 不要添加 AWS 或任何其他云 provider。
 
-## Expected initial failure
+## 预期初始失败
 
-After seeding, `python tools/labctl.py check 11` reaches the behavioral state gate and reports `EXPECTED_STATE_REFACTOR_INCOMPLETE`. Initially the import stage proposes creating a new identity instead of adopting the seeded one. Once import is corrected, the same gate continues into the refactor stage and rejects any root-to-module delete/create plan.
+播种后，`python tools/labctl.py check 11` 会到达行为 state gate，并报告 `EXPECTED_STATE_REFACTOR_INCOMPLETE`。初始 import 阶段会计划创建一个新标识，而不是采用已播种的标识。修正 import 后，同一个 gate 会继续进入重构阶段，并拒绝任何从根地址到模块地址的 delete/create plan。
 
-## Validation commands
+## 验证命令
 
-From the repository root:
+从仓库根目录运行：
 
 ```text
 python tools/labctl.py reset 11
@@ -90,29 +90,29 @@ python tools/labctl.py check 11
 python tools/labctl.py check 11 --mode solution
 ```
 
-The plain check proves the untouched starter fails for the expected reason. After editing both allowed files, use `--mode solution` for the passing gate. Both modes format all Lab 11 Terraform files; the verifier initializes and validates each stage in an isolated work directory, applies only the local logical resource, inspects saved plan JSON, lists state addresses, and runs a final detailed-exitcode plan.
+普通 check 用于证明未修改的 starter 会因预期原因失败。编辑完两个允许修改的文件后，使用 `--mode solution` 执行通过 gate。这两种模式都会格式化 Lab 11 的所有 Terraform 文件；verifier 会在隔离工作目录中初始化并验证每个阶段，仅 apply 本地逻辑资源，检查保存的 plan JSON，列出 state 地址，并执行最终使用 detailed-exitcode 的 plan。
 
-## Success criteria
+## 成功标准
 
-- Seed establishes and reports `random_id.legacy_record` before releasing its state binding.
-- The import plan reports one import and zero add/destroy actions.
-- Imported state contains exactly `random_id.legacy_record` and its identifier matches the fixture.
-- The refactor plan records an exact move to `module.record.random_id.this` with zero add/destroy actions.
-- Final state contains exactly the module address and preserves the imported identifier.
-- A subsequent plan reports `0 to add, 0 to change, 0 to destroy`.
-- Reset removes `.lab-state/`, including its state, plans, fixture, and nested `.terraform/` data.
+- Seed 在释放 state 绑定前建立并报告 `random_id.legacy_record`。
+- Import plan 报告一次 import，以及零 add/destroy action。
+- Imported state 必须恰好包含 `random_id.legacy_record`，且其标识符与 fixture 一致。
+- Refactor plan 必须记录一次到 `module.record.random_id.this` 的精确 move，并包含零 add/destroy action。
+- 最终 state 必须恰好包含模块地址，并保留 imported 标识符。
+- 后续 plan 报告 `0 to add, 0 to change, 0 to destroy`。
+- Reset 会移除 `.lab-state/`，包括其中的 state、plan、fixture 以及嵌套的 `.terraform/` 数据。
 
-## Reset instructions
+## 重置说明
 
-From the repository root:
+从仓库根目录运行：
 
 ```text
 python tools/labctl.py reset 11
 ```
 
-Reset removes only Lab 11 generated artifacts and recorded check results. It preserves both learner-editable configuration files.
+重置操作仅删除 Lab 11 生成的产物和已记录的检查结果，并保留两个允许学员编辑的配置文件。
 
-## Limited hints
+## 有限提示
 
-- The first stage is about associating a supplied identifier with an existing configuration address, not generating a replacement.
-- The second stage changes only the address. Terraform needs an explicit record of the old and new addresses to distinguish a move from delete/create.
+- 第一阶段的目标是把提供的标识符与现有配置地址关联起来，而不是生成 replacement。
+- 第二阶段只更改地址。Terraform 需要旧地址和新地址的显式记录，才能将此次变更识别为 move，而不是 delete/create。

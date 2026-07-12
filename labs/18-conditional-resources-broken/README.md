@@ -1,89 +1,88 @@
-# Lab 18 - Conditional count with one() and try()
+# Lab 18：使用 one() 和 try() 的条件 count
 
-## Scenario
+## 场景
 
-A deployment marker is optional. Its current outputs directly index the zero-or-one resource, so the disabled path crashes during planning. Make both enabled and disabled paths safe while demonstrating the two requested collection-reading patterns.
+部署标记是可选的。当前输出直接对零个或一个资源的集合使用索引，因此禁用路径会在 plan 阶段崩溃。请在展示两种指定集合读取模式的同时，确保启用和禁用路径均安全可用。
 
-## Skills tested
+## 考查技能
 
-- Conditional `count` with zero or one instance
-- Reading a zero-or-one splat with `one()`
-- Using `try()` around an expression that can fail
-- Designing nullable outputs for absent resources
+- 使用条件 `count` 创建零个或一个实例
+- 使用 `one()` 读取零个或一个元素的 splat
+- 对可能失败的表达式使用 `try()`
+- 为不存在的资源设计可空输出
 
-## Difficulty and estimated time
+## 难度与预计时间
 
-- Difficulty: medium
-- Estimated time: 15 minutes
+- 难度：中等
+- 预计时间：15 分钟
 
-## Execution mode
+## 执行模式
 
-Local Terraform authoring with `terraform_data`.
+使用 `terraform_data` 在本地编写 Terraform 配置。
 
-## Cloud credentials required
+## 是否需要云凭据
 
-No.
+否。
 
-## Cost risk
+## 成本风险
 
-None.
+无。
 
-## Starting state
+## 初始状态
 
-The resource already uses conditional count. Both outputs use unsafe direct indexing and the default disabled plan fails.
+资源已经使用条件 count。两个输出都使用不安全的直接索引，因此默认的禁用 plan 会失败。
 
-## Files allowed to edit
+## 允许编辑的文件
 
 - `starter/main.tf`
 
-## Files not allowed to edit
+## 禁止编辑的文件
 
 - `starter/versions.tf`
 - `tests/public.tftest.hcl`
 - `scripts/verify_tests.py`
 - `lab.yaml`
 
-## Tasks
+## 任务
 
-1. Keep the resource count at zero when disabled and one when enabled.
-2. Make `selected_name` safely read the zero-or-one collection with `one()`.
-3. Make `selected_owner` safely handle a potentially invalid index with `try()`.
-4. Preserve `null` as the absence value and exact configured values when enabled.
+1. 禁用时保持资源 count 为零，启用时保持为一。
+2. 让 `selected_name` 使用 `one()` 安全读取零个或一个元素的集合。
+3. 让 `selected_owner` 使用 `try()` 安全处理可能无效的索引。
+4. 不存在时保留 `null`，启用时返回精确的配置值。
 
-## Constraints
+## 约束
 
-- Use both `one()` and `try()` in the editable configuration.
-- Do not use sentinel strings for absence.
-- Do not add providers or external dependencies.
-- Reject an empty marker name.
+- 在可编辑配置中同时使用 `one()` 和 `try()`。
+- 不要使用哨兵字符串表示不存在。
+- 不要添加 provider 或外部依赖。
+- 拒绝空的标记名称。
 
-## Expected initial failure
+## 预期初始失败
 
-`python tools/labctl.py check 18` reports `EXPECTED_CONDITIONAL_READ_INCOMPLETE` at the test stage. The unmodified default plan fails because count is zero and the outputs index element zero.
+`python tools/labctl.py check 18` 会在测试阶段报告 `EXPECTED_CONDITIONAL_READ_INCOMPLETE`。未修改的默认 plan 会失败，因为 count 为零，而输出却索引了第零个元素。
 
-## Validation commands
+## 验证命令
 
 ```bash
 python tools/labctl.py check 18
 python tools/labctl.py status 18
 ```
 
-## Success criteria
+## 成功标准
 
-- Disabled input plans successfully with a resource count of zero and both optional outputs set to `null`.
-- Enabled input plans one record and returns the exact configured name and owner.
-- An empty name is rejected.
-- `selected_name` uses `one()` with the zero-or-one name splat, while `selected_owner` uses
-  `try()` around the potentially invalid owner index with a `null` fallback.
-- comments and quoted-string lookalikes do not satisfy the protected source contract.
+- 禁用输入可以成功生成 plan，资源 count 为零，两个可选输出均为 `null`。
+- 启用输入会规划一个记录，并返回精确的已配置名称和所有者。
+- 空名称会被拒绝。
+- `selected_name` 对零个或一个名称的 splat 使用 `one()`，而 `selected_owner` 对可能无效的所有者索引使用 `try()`，并以 `null` 作为回退值。
+- 注释和带引号字符串中的仿冒内容不能满足受保护的源代码契约。
 
-## Reset instructions
+## 重置说明
 
 ```bash
 python tools/labctl.py reset 18
 ```
 
-## Limited hints
+## 有限提示
 
-- A splat converts zero-or-one instances into a zero-or-one tuple.
-- One output can read that tuple; the other can recover from a failing expression.
+- splat 会将零个或一个实例转换为包含零个或一个元素的 tuple。
+- 一个输出可以读取该 tuple，另一个输出可以从失败的表达式中恢复。

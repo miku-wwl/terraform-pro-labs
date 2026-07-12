@@ -1,65 +1,65 @@
-# Lab 04 — Backend Boundaries and Local Cross-Stack State
+# Lab 04：后端边界与本地跨栈状态
 
-## Scenario
+## 场景
 
-A network producer owns an output contract. An application consumer currently maintains a copied version of that contract, while its optional S3 backend declaration incorrectly contains an environment-specific value. Correct both boundaries without contacting AWS.
+网络 producer 负责维护一份输出契约。应用 consumer 当前保存了这份契约的复制版本，同时其可选 S3 backend 声明错误地包含了一个环境专属值。请在不连接 AWS 的前提下修正这两个边界。
 
-## Skills tested
+## 考查技能
 
-- Separating producer configuration, consumer configuration, and backend initialization values
-- Consuming a local state fixture with `terraform_remote_state`
-- Keeping expressions and environment-specific values out of backend blocks
-- Inspecting state addresses and proving a final no-op plan
+- 分离 producer 配置、consumer 配置与 backend 初始化值
+- 使用 `terraform_remote_state` 消费本地状态 fixture
+- 确保 backend 块中不包含表达式和环境专属值
+- 检查状态地址并证明最终计划为 no-op
 
-## Difficulty and estimated time
+## 难度与预计时间
 
-- Difficulty: medium
-- Estimated time: 30 minutes
+- 难度：中等
+- 预计时间：30 分钟
 
-## Execution mode
+## 执行模式
 
-Default validation bootstraps two distinct local producer states under `.lab-state/`. The S3 backend files are an offline, explicitly optional extension only.
+默认验证会在 `.lab-state/` 下引导生成两个互相独立的本地 producer 状态。S3 backend 文件仅作为离线且必须明确选择启用的可选扩展。
 
-## Cloud credentials required
+## 是否需要云凭据
 
-None for the default workflow. An optional real S3 initialization requires separate authorization and learner-owned infrastructure.
+默认工作流不需要。可选的真实 S3 初始化需要单独授权以及学习者自有的基础设施。
 
-## Cost risk
+## 成本风险
 
-Default: none. The optional path writes at most one small Terraform state object and makes a small number of S3 requests. For a single short practice session the incremental charge is normally below US$0.01, but AWS, replication, KMS, data-transfer, and organization-specific charges are not capped by this lab; check current pricing before opting in.
+默认：无。可选路径最多写入一个很小的 Terraform 状态对象，并发起少量 S3 请求。在一次短暂的练习中，增量费用通常低于 0.01 美元，但 AWS、复制、KMS、数据传输及组织专属费用不受本 Lab 限制；选择启用前请查看当前价格。
 
-## Starting state
+## 初始状态
 
-`bootstrap/producer/` is the protected producer. `starter/consumer/` uses a manually copied network value. `starter/backend.tf.example` keeps shared backend safety settings but also contains one misplaced init-time setting.
+`bootstrap/producer/` 是受保护的 producer。`starter/consumer/` 使用手工复制的网络值。`starter/backend.tf.example` 保留了共享 backend 安全设置，但同时包含一个放错位置的初始化时设置。
 
-## Files allowed to edit
+## 允许编辑的文件
 
 - `starter/consumer/main.tf`
 - `starter/backend.tf.example`
 
-## Files not allowed to edit
+## 禁止编辑的文件
 
-- `bootstrap/`, `backend-dev.hcl.example`, `starter/consumer/versions.tf`, `scripts/`, `tests/`,
-  and `lab.yaml`
+- `bootstrap/`、`backend-dev.hcl.example`、`starter/consumer/versions.tf`、`scripts/`、`tests/`
+  和 `lab.yaml`
 
-## Tasks
+## 任务
 
-1. Read the producer's `network` output through the supplied local state path.
-2. Feed the consumed value into the application contract and output it.
-3. Leave only shared static safety settings in the optional S3 backend block.
-4. Keep bucket, key, and region in the init-time example.
+1. 通过提供的本地状态路径读取 producer 的 `network` 输出。
+2. 将消费到的值传入应用契约并输出该值。
+3. 在可选 S3 backend 块中只保留共享的静态安全设置。
+4. 将 bucket、key 和 region 保留在初始化示例中。
 
-## Constraints
+## 约束
 
-- Do not copy or hardcode producer output values.
-- Do not use Terraform expressions inside the backend block.
-- Do not add credentials or initialize S3 during normal validation.
+- 不得复制或硬编码 producer 输出值。
+- 不得在 backend 块中使用 Terraform 表达式。
+- 不得添加凭据，也不得在常规验证期间初始化 S3。
 
-## Expected initial failure
+## 预期初始失败
 
-The starter passes format, offline initialization, and validation, then reports `EXPECTED_BACKEND_CROSS_STACK_INCOMPLETE` because it uses copied values and keeps an init-time key in the backend declaration.
+starter 会通过格式检查、离线初始化和验证，随后报告 `EXPECTED_BACKEND_CROSS_STACK_INCOMPLETE`，因为它使用了复制值，并在 backend 声明中保留了一个初始化时 key。
 
-## Validation commands
+## 验证命令
 
 ```text
 python tools/labctl.py reset 04
@@ -67,45 +67,45 @@ python tools/labctl.py check 04
 python tools/labctl.py check 04 --mode solution
 ```
 
-### Optional real S3 initialization — explicit opt-in only
+### 可选的真实 S3 初始化——仅限明确选择启用
 
-Prerequisites: a learner-owned S3 bucket, permission to read/write/delete only the chosen state key, a configured external AWS credential chain, and confirmation that no other operator uses `network/dev.tfstate`. The lab does not create the bucket, credentials, KMS keys, or locking infrastructure.
+前提条件：学习者自有的 S3 bucket、仅对所选状态 key 具有读/写/删除权限、已配置的外部 AWS 凭据链，以及确认没有其他操作者使用 `network/dev.tfstate`。本 Lab 不会创建 bucket、凭据、KMS key 或锁定基础设施。
 
-Create local, untracked working copies. On PowerShell:
+创建未被跟踪的本地工作副本。在 PowerShell 中运行：
 
 ```powershell
 Copy-Item labs/04-remote-state-backend-broken/starter/backend.tf.example labs/04-remote-state-backend-broken/starter/consumer/backend.tf
 Copy-Item labs/04-remote-state-backend-broken/backend-dev.hcl.example labs/04-remote-state-backend-broken/backend-dev.hcl
 ```
 
-On a POSIX shell:
+在 POSIX shell 中运行：
 
 ```bash
 cp labs/04-remote-state-backend-broken/starter/backend.tf.example labs/04-remote-state-backend-broken/starter/consumer/backend.tf
 cp labs/04-remote-state-backend-broken/backend-dev.hcl.example labs/04-remote-state-backend-broken/backend-dev.hcl
 ```
 
-Replace only the bucket placeholder in `backend-dev.hcl`, then review the bucket, key, region, encryption, credential source, and access policy before explicitly running:
+仅替换 `backend-dev.hcl` 中的 bucket 占位符，然后检查 bucket、key、region、加密、凭据来源和访问策略，再明确运行：
 
 ```text
 terraform -chdir=labs/04-remote-state-backend-broken/starter/consumer init -reconfigure -backend-config=../../backend-dev.hcl
 ```
 
-Initialization can upload or migrate an existing local state snapshot. Remote state can contain sensitive values, concurrent use can overwrite state, and deleting or changing the key can orphan it. Do not run this command against a shared or production state path.
+初始化可能上传或迁移现有的本地状态快照。远程状态可能包含敏感值，并发使用可能覆盖状态，删除或更改 key 可能使状态失去引用。不得对共享或生产状态路径运行此命令。
 
-## Success criteria
+## 成功标准
 
-- Offline negative control rejects a dynamic backend expression.
-- Optional S3 backend contains only `encrypt` and `use_lockfile`; init-time example contains only placeholder bucket, key, and region.
-- Both distinct producer states contain exactly `terraform_data.network_contract`.
-- Each consumer state contains the remote-state data source and `terraform_data.application_contract`.
-- Each consumer output exactly follows its selected producer, including changed IDs and collection length; initial plans have no destroy and final plans are no-op.
+- 离线负向对照会拒绝动态 backend 表达式。
+- 可选 S3 backend 只包含 `encrypt` 和 `use_lockfile`；初始化示例只包含占位 bucket、key 和 region。
+- 两个不同的 producer 状态均恰好包含 `terraform_data.network_contract`。
+- 每个 consumer 状态均包含远程状态 data source 和 `terraform_data.application_contract`。
+- 每个 consumer 输出都精确跟随其所选 producer，包括变化后的 ID 和集合长度；初始计划不包含 destroy，最终计划为 no-op。
 
-## Reset instructions
+## 重置说明
 
-For the default local workflow, `python tools/labctl.py reset 04` removes only Lab 04 runtime state, initialization metadata, plans, locks, and recorded results.
+对于默认本地工作流，`python tools/labctl.py reset 04` 仅删除 Lab 04 的运行时状态、初始化元数据、计划、锁和已记录的结果。
 
-For an optional real S3 attempt, first preserve any state you still need. To migrate the selected state back to the local backend, remove the copied backend declaration and reinitialize before reset:
+如果尝试了可选的真实 S3 路径，请先保留仍然需要的所有状态。要将所选状态迁回本地 backend，请删除复制的 backend 声明并重新初始化，然后再重置：
 
 ```powershell
 Remove-Item labs/04-remote-state-backend-broken/starter/consumer/backend.tf
@@ -114,9 +114,9 @@ python tools/labctl.py reset 04
 Remove-Item labs/04-remote-state-backend-broken/backend-dev.hcl
 ```
 
-POSIX equivalents use `rm` for the two copied files. If the learner-owned bucket no longer needs the remote object, delete only the exact `network/dev.tfstate` object through approved AWS tooling after confirming it is not shared. `labctl reset` deliberately does not contact S3 or delete learner-owned backend configuration.
+在 POSIX 中，使用 `rm` 删除这两个复制文件。如果学习者自有的 bucket 不再需要该远程对象，请在确认它未被共享后，通过获批的 AWS 工具仅删除准确的 `network/dev.tfstate` 对象。`labctl reset` 有意不会连接 S3，也不会删除学习者自有的 backend 配置。
 
-## Limited hints
+## 有限提示
 
-- Backend configuration is evaluated before ordinary input variables.
-- The local remote-state backend accepts a filesystem path in its `config` map.
+- backend 配置的求值早于普通输入变量。
+- 本地 remote-state backend 的 `config` map 接受文件系统路径。

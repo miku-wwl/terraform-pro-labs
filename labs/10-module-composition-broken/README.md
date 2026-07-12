@@ -1,43 +1,43 @@
-# Lab 10 - Root and Child Module Composition
+# Lab 10：根模块与子模块组合
 
-## Scenario
+## 场景
 
-An application stack has three child modules with stable contracts: naming produces a prefix, identity produces a profile name, and compute consumes both. Repair the root module so values cross module boundaries through explicit inputs and outputs.
+一个应用栈包含三个具有稳定契约的子模块：naming 生成前缀，identity 生成 profile 名称，compute 使用这两个值。修复根模块，使值通过显式输入和输出跨越模块边界。
 
-## Skills tested
+## 考查技能
 
-- Calling child modules from a root module
-- Passing root inputs into modules
-- Wiring one child module's output into another
-- Exposing selected child outputs at the root
-- Understanding reference-based dependency edges
+- 从根模块调用子模块
+- 将根模块输入传递给模块
+- 将一个子模块的输出连接到另一个子模块
+- 在根模块中公开选定的子模块输出
+- 理解基于引用形成的依赖边
 
-## Difficulty and estimated time
+## 难度与预计时间
 
-- Difficulty: medium
-- Estimated time: 20 minutes
+- 难度：中等
+- 预计时间：20 分钟
 
-## Execution mode
+## 执行模式
 
-Local Terraform module composition with built-in resources only.
+仅使用内置资源在本地进行 Terraform 模块组合。
 
-## Cloud credentials required
+## 是否需要云凭据
 
-No. The modules model contracts with `terraform_data` and contact no service.
+不需要。模块使用 `terraform_data` 建模契约，不会访问任何服务。
 
-## Cost risk
+## 成本风险
 
-None.
+无。
 
-## Starting state
+## 初始状态
 
-All three child modules exist and are protected. The root calls them, but one input and one root output bypass the intended module wiring.
+三个子模块均已存在并受到保护。根模块会调用它们，但其中一个输入和一个根输出绕过了预期的模块连接关系。
 
-## Files allowed to edit
+## 允许编辑的文件
 
 - `starter/main.tf`
 
-## Files not allowed to edit
+## 禁止编辑的文件
 
 - `starter/versions.tf`
 - `starter/modules/`
@@ -45,46 +45,46 @@ All three child modules exist and are protected. The root calls them, but one in
 - `scripts/verify_tests.py`
 - `lab.yaml`
 
-## Tasks
+## 任务
 
-1. Pass the root application and environment values into the naming module.
-2. Pass the naming result into the identity module.
-3. Pass both the naming result and identity profile result into compute.
-4. Expose the compute instance reference and identity profile name from the root.
+1. 将根模块的 application 和 environment 值传递给 naming 模块。
+2. 将 naming 的结果传递给 identity 模块。
+3. 将 naming 结果和 identity profile 结果一并传递给 compute。
+4. 从根模块公开 compute instance 引用和 identity profile 名称。
 
-## Constraints
+## 约束
 
-- Do not duplicate child-module naming formulas in the root.
-- Preserve all child-module interfaces and use references to establish dependencies.
-- Do not add providers or cloud resources.
-- Keep the root outputs keyed and named as provided.
+- 不要在根模块中重复子模块的命名公式。
+- 保留所有子模块接口，并使用引用建立依赖关系。
+- 不要添加 provider 或云资源。
+- 保持根输出的键和名称不变。
 
-## Expected initial failure
+## 预期初始失败
 
-`python tools/labctl.py check 10` reports `EXPECTED_MODULE_COMPOSITION_INCOMPLETE` at the test stage because the starter bypasses required child-module outputs.
+`python tools/labctl.py check 10` 会在测试阶段报告 `EXPECTED_MODULE_COMPOSITION_INCOMPLETE`，因为 starter 绕过了必需的子模块输出。
 
-## Validation commands
+## 验证命令
 
 ```bash
 python tools/labctl.py check 10
 python tools/labctl.py status 10
 ```
 
-## Success criteria
+## 成功标准
 
-- Default inputs yield prefix `payments-dev`, profile `payments-dev-profile`, and compute reference `payments-dev::payments-dev-profile`.
-- Alternate valid inputs flow through every child module without hardcoded default values.
-- An unsupported environment is rejected by the protected naming module contract.
-- Plan-configuration inspection proves the naming, identity, and compute module arguments use the required upstream references.
-- The root output directly exposes the naming, identity, and compute module outputs instead of reconstructing equal strings.
+- 默认输入生成前缀 `payments-dev`、profile `payments-dev-profile` 和 compute 引用 `payments-dev::payments-dev-profile`。
+- 有效的替代输入必须流经每个子模块，不能使用硬编码的默认值。
+- 不受支持的 environment 必须被受保护的 naming 模块契约拒绝。
+- 对 plan 配置的检查必须证明 naming、identity 和 compute 模块参数使用了必需的上游引用。
+- 根输出必须直接公开 naming、identity 和 compute 模块的输出，而不是重新构造内容相同的字符串。
 
-## Reset instructions
+## 重置说明
 
 ```bash
 python tools/labctl.py reset 10
 ```
 
-## Limited hints
+## 有限提示
 
-- Follow outputs from producer to consumer rather than recreating their strings.
-- A reference used as a module argument also creates the dependency edge.
+- 沿着输出从生产者追踪到消费者，不要重新创建相同的字符串。
+- 用作模块参数的引用也会创建依赖边。

@@ -1,88 +1,88 @@
-# Lab 24 - Sensitive Inputs, Redaction, and Safe Outputs
+# Lab 24：敏感输入、脱敏与安全输出
 
-## Scenario
+## 场景
 
-A local database configuration correctly propagates a runtime password as sensitive data, but one debug output explicitly declassifies and exposes it. Preserve useful non-secret diagnostics without publishing credential material.
+本地数据库配置已经正确地将运行时密码作为敏感数据传播，但某个调试输出会显式解除敏感标记并暴露该密码。请保留有用的非秘密诊断信息，同时避免发布凭据材料。
 
-## Skills tested
+## 考查技能
 
-- Sensitive input and output metadata
-- Automatic sensitivity propagation and CLI redaction
-- Safe, deliberate declassification of derived non-secret metadata
-- Avoiding secret-bearing debug outputs and defaults
+- 敏感输入和输出的元数据
+- 敏感性的自动传播与 CLI 脱敏
+- 对派生的非秘密元数据安全且有意地解除敏感标记
+- 避免包含秘密的调试输出和默认值
 
-## Difficulty and estimated time
+## 难度与预计时间
 
-- Difficulty: medium
-- Estimated time: 20 minutes
+- 难度：中等
+- 预计时间：20 分钟
 
-## Execution mode
+## 执行模式
 
-Provider-free Terraform planning and apply in a protected temporary directory using only the built-in provider.
+在受保护的临时目录中仅使用内置 provider 执行 Terraform plan 和 apply，无需外部 provider。
 
-## Cloud credentials required
+## 是否需要云凭据
 
-No.
+否。
 
-## Cost risk
+## 成本风险
 
-None.
+无。
 
-## Starting state
+## 初始状态
 
-The password has no committed default and the intended secret-bearing outputs are sensitive. One extra debug output removes protection from the raw password.
+密码没有已提交的默认值，预期包含秘密的输出也已标记为敏感。另有一个调试输出移除了原始密码的保护。
 
-## Files allowed to edit
+## 允许编辑的文件
 
 - `starter/main.tf`
 
-## Files not allowed to edit
+## 禁止编辑的文件
 
 - `starter/versions.tf`
 - `scripts/`
 - `lab.yaml`
 
-## Tasks
+## 任务
 
-1. Remove the output path that publishes raw credential material.
-2. Preserve sensitive metadata on the connection URI and complete database configuration.
-3. Preserve the non-sensitive credential metadata output without including the password.
-4. Keep the password runtime-supplied; do not add a default or fixture value.
+1. 移除会发布原始凭据材料的输出路径。
+2. 保留连接 URI 和完整数据库配置的敏感元数据。
+3. 保留不含密码的非敏感凭据元数据输出。
+4. 继续要求在运行时提供密码；不要添加默认值或 fixture 值。
 
-## Constraints
+## 约束
 
-- Do not place a password or secret-like value in source, fixtures, README examples, or logs.
-- Do not declassify the raw password or connection URI.
-- Do not make every output sensitive merely to bypass the safe-diagnostics requirement.
-- Do not edit the protected verifier.
+- 不要在源代码、fixture、README 示例或日志中放置密码或类似秘密的值。
+- 不要解除原始密码或连接 URI 的敏感标记。
+- 不要仅为绕过安全诊断要求而将每个输出都标记为敏感。
+- 不要编辑受保护的验证器。
 
-## Expected initial failure
+## 预期初始失败
 
-`python tools/labctl.py check 24` reports `EXPECTED_SENSITIVE_BOUNDARY_INCOMPLETE` because the starter includes an unsafe extra output and exposes the runtime probe in normal plan rendering.
+`python tools/labctl.py check 24` 会报告 `EXPECTED_SENSITIVE_BOUNDARY_INCOMPLETE`，因为 starter 包含不安全的额外输出，并在正常 plan 渲染中暴露运行时探针。
 
-## Validation commands
+## 验证命令
 
 ```text
 python tools/labctl.py check 24
 python tools/labctl.py status 24
 ```
 
-## Success criteria
+## 成功标准
 
-- `db_password` is a required sensitive variable.
-- Secret-bearing outputs retain their exact runtime-derived values and sensitive metadata.
-- Normal CLI plan and apply rendering redact the runtime probe.
-- Root outputs contain no raw-password debug channel.
-- `credential_metadata` remains non-sensitive and contains only username and configured-status data.
-- No real secret is stored or printed by the default workflow.
+- `db_password` 是必填的敏感变量。
+- 包含秘密的输出保留其精确的运行时派生值和敏感元数据。
+- 正常的 CLI plan 和 apply 渲染会对运行时探针进行脱敏。
+- 根模块输出中不存在原始密码调试通道。
+- `credential_metadata` 保持非敏感，且仅包含用户名和配置状态数据。
+- 默认工作流不会存储或打印真实秘密。
 
-## Reset instructions
+## 重置说明
 
 ```text
 python tools/labctl.py reset 24
 ```
 
-## Limited hints
+## 有限提示
 
-- Sensitivity is metadata that propagates through expressions.
-- Declassify only a derived value that cannot reconstruct the secret.
+- 敏感性是会通过表达式传播的元数据。
+- 仅对无法用于重建秘密的派生值解除敏感标记。

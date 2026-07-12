@@ -1,65 +1,60 @@
-# Lab 19 — Preserve State from `count` to `for_each`
+# Lab 19：从 `count` 重构为 `for_each` 时保留状态
 
-## Scenario
+## 场景
 
-Three local bucket records already exist at count-indexed state addresses. Refactor them to stable
-logical keys without replacing any object or changing its stored values.
+三个本地 bucket 记录已经存在于采用 count 索引的状态地址中。请将其重构为稳定的逻辑键，同时不替换任何对象，也不更改其存储值。
 
-## Skills tested
+## 考查技能
 
-- count-index and `for_each` addressing
-- exact multi-instance `moved` mappings
-- plan JSON and state-list inspection
-- identity-preserving state refactors
+- count 索引与 `for_each` 寻址
+- 精确的多实例 `moved` 映射
+- 检查 plan JSON 和状态列表
+- 保留对象身份的状态重构
 
-## Difficulty and estimated time
+## 难度与预计时间
 
-Hard, about 35 minutes.
+困难，约 35 分钟。
 
-## Execution mode
+## 执行模式
 
-Seeded, isolated local state using built-in `terraform_data`.
+使用内置 `terraform_data`，并采用预置且隔离的本地状态。
 
-## Cloud credentials required
+## 是否需要云凭据
 
-None.
+否。
 
-## Cost risk
+## 成本风险
 
-None.
+无。
 
-## Starting state
+## 初始状态
 
-`python tools/labctl.py seed 19` applies the protected old configuration and creates
-`terraform_data.bucket[0]`, `[1]`, and `[2]`. The starter already has the desired keyed resources
-but no state-transition declarations.
+`python tools/labctl.py seed 19` 会应用受保护的旧配置，并创建 `terraform_data.bucket[0]`、`[1]` 和 `[2]`。starter 已包含所需的键控资源，但没有状态转换声明。
 
-## Files allowed to edit
+## 允许编辑的文件
 
 - `starter/main.tf`
 
-## Files not allowed to edit
+## 禁止编辑的文件
 
-- `lab.yaml`, `bootstrap/`, and `scripts/`
+- `lab.yaml`、`bootstrap/` 和 `scripts/`
 - `starter/versions.tf`
 
-## Tasks
+## 任务
 
-1. Preserve index 0 as key `logs`, index 1 as `assets`, and index 2 as `archive`.
-2. Produce zero create/delete actions during the refactor.
-3. Finish with only the three keyed addresses and a no-op plan.
+1. 将索引 0 保留为键 `logs`，索引 1 保留为 `assets`，索引 2 保留为 `archive`。
+2. 重构期间产生零个 create/delete 动作。
+3. 最终状态中仅保留三个键控地址，并得到 no-op plan。
 
-## Constraints
+## 约束
 
-Do not delete or recreate state, change record values, use `terraform state mv`, or return to
-`count`. Preserve the protected old configuration as the source fixture.
+不要删除或重建状态，不要更改记录值，不要使用 `terraform state mv`，也不要恢复使用 `count`。保留受保护的旧配置作为源 fixture。
 
-## Expected initial failure
+## 预期初始失败
 
-After a fresh seed, `python tools/labctl.py check 19` reports
-`EXPECTED_COUNT_TO_FOREACH_REFACTOR_INCOMPLETE`; the starter plans indexed deletes and keyed creates.
+重新预置状态后，`python tools/labctl.py check 19` 会报告 `EXPECTED_COUNT_TO_FOREACH_REFACTOR_INCOMPLETE`；starter 会规划删除索引地址并创建键控地址。
 
-## Validation commands
+## 验证命令
 
 ```text
 python tools/labctl.py reset 19
@@ -67,23 +62,22 @@ python tools/labctl.py seed 19
 python tools/labctl.py check 19
 ```
 
-## Success criteria
+## 成功标准
 
-- all three old addresses are present before the refactor;
-- plan JSON contains the exact 0→logs, 1→assets, and 2→archive no-op mappings;
-- no create or delete action occurs;
-- final state contains exactly the three logical-key addresses;
-- values remain unchanged and the final plan is no-op.
+- 重构前存在全部三个旧地址；
+- plan JSON 包含精确的 0→logs、1→assets 和 2→archive no-op 映射；
+- 不发生 create 或 delete 动作；
+- 最终状态恰好包含三个逻辑键地址；
+- 值保持不变，最终 plan 为 no-op。
 
-## Reset instructions
+## 重置说明
 
 ```text
 python tools/labctl.py reset 19
 ```
 
-Reset deletes only Lab 19's `.lab-state`, generated initialization/plan files, and results.
+重置只会删除 Lab 19 的 `.lab-state`、生成的初始化文件和 plan 文件，以及结果记录。
 
-## Limited hints
+## 有限提示
 
-Terraform needs a separate explicit address transition for every old instance. The order of the
-map in source is not a substitute for declaring those transitions.
+Terraform 需要为每个旧实例声明单独且明确的地址转换。源代码中 map 的顺序不能替代这些转换声明。

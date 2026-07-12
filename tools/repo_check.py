@@ -14,23 +14,58 @@ import labctl
 ROOT = Path(__file__).resolve().parents[1]
 LABS = ROOT / "labs"
 REQUIRED_HEADINGS = (
-    "scenario",
-    "skills tested",
-    "difficulty and estimated time",
-    "execution mode",
-    "cloud credentials required",
-    "cost risk",
-    "starting state",
-    "files allowed to edit",
-    "files not allowed to edit",
-    "tasks",
-    "constraints",
-    "expected initial failure",
-    "validation commands",
-    "success criteria",
-    "reset instructions",
-    "limited hints",
+    "场景",
+    "考查技能",
+    "难度与预计时间",
+    "执行模式",
+    "是否需要云凭据",
+    "成本风险",
+    "初始状态",
+    "允许编辑的文件",
+    "禁止编辑的文件",
+    "任务",
+    "约束",
+    "预期初始失败",
+    "验证命令",
+    "成功标准",
+    "重置说明",
+    "有限提示",
 )
+DIFFICULTY_LABELS = {"easy": "简单", "medium": "中等", "hard": "困难"}
+LOCALIZED_TITLES = {
+    1: "Terraform CLI 与 `prevent_destroy`",
+    2: "使用稳定迭代的动态配置",
+    3: "导入集合并重构为模块实例",
+    4: "后端边界与本地跨栈状态",
+    5: "工作区隔离的跨栈消费",
+    6: "Provider 要求、别名与认证边界",
+    7: "验证、前置条件、检查与测试",
+    8: "从 IAM Role 到 EC2 的依赖链",
+    9: "使用独立规则资源的安全组",
+    10: "根模块与子模块组合",
+    11: "Import、moved block 与模块重构",
+    12: "Remote state 消费者与 backend 分离",
+    13: "Workspace 感知行为与生产环境防护规则",
+    14: "将带 alias 的 provider 传入子模块",
+    15: "条件式 S3 版本控制、生命周期、标签与输出",
+    16: "过滤后的 for_each 与稳定的 map 输出",
+    17: "数据源与跨栈查询边界",
+    18: "使用 one() 和 try() 的条件 count",
+    19: "从 `count` 重构为 `for_each` 时保留状态",
+    20: "外部 JSON 与 CSV 数据塑形",
+    21: "动态嵌套 ingress 块",
+    22: "先创建后销毁的替换顺序",
+    23: "精确的 `ignore_changes` 所有权边界",
+    24: "敏感输入、脱敏与安全输出",
+    25: "HCP Terraform 运维决策",
+    26: "moved 与 removed 的状态语义",
+    27: "扁平化集合、稳定键与标签合并",
+    28: "Provider 版本约束语义",
+    29: "Terraform Test 的顺序状态",
+    30: "正则命名验证与规范化",
+    31: "S3 Backend 部分配置",
+    32: "使用 `replace_triggered_by` 实现依赖驱动替换",
+}
 ALLOWED_LAB_ROOT_FILES = {
     ".gitignore",
     "README.md",
@@ -61,10 +96,6 @@ def is_within(relative: Path, declared: Path) -> bool:
     return True
 
 
-def normalized(value: str) -> str:
-    return re.sub(r"[^a-z0-9]+", " ", value.lower()).strip()
-
-
 def check_lab(lab_dir: Path) -> list[str]:
     issues: list[str] = []
     try:
@@ -76,24 +107,51 @@ def check_lab(lab_dir: Path) -> list[str]:
     if not readme_path.is_file():
         return [f"{lab_dir.name}: README.md is missing"]
     readme = readme_path.read_text(encoding="utf-8")
-    headings = {
-        normalized(match.group(1))
-        for match in re.finditer(r"(?m)^##\s+(.+?)\s*$", readme)
-    }
+    heading_matches = list(re.finditer(r"(?m)^##\s+(.+?)\s*$", readme))
+    headings = [match.group(1).strip() for match in heading_matches]
+    sections: dict[str, str] = {}
+    for index, match in enumerate(heading_matches):
+        start = match.end()
+        end = (
+            heading_matches[index + 1].start()
+            if index + 1 < len(heading_matches)
+            else len(readme)
+        )
+        sections[match.group(1).strip()] = readme[start:end]
     for required in REQUIRED_HEADINGS:
-        if required not in headings:
-            issues.append(f"{lab_dir.name}: README heading missing: {required}")
+        count = headings.count(required)
+        if count != 1:
+            issues.append(
+                f"{lab_dir.name}: README heading must appear exactly once: {required} (found {count})"
+            )
 
     first_heading = re.search(r"(?m)^#\s+(.+?)\s*$", readme)
-    expected_id = f"lab {manifest['id']:02d}"
-    if first_heading is None or expected_id not in normalized(first_heading.group(1)):
-        issues.append(f"{lab_dir.name}: README title does not contain {expected_id}")
-    elif normalized(manifest["title"]) not in normalized(first_heading.group(1)):
-        issues.append(f"{lab_dir.name}: README title differs from manifest title")
+    localized_title = LOCALIZED_TITLES.get(manifest["id"])
+    if localized_title is None:
+        issues.append(f"{lab_dir.name}: no localized title contract for manifest ID {manifest['id']}")
+    else:
+        expected_title = f"Lab {manifest['id']:02d}：{localized_title}"
+        if first_heading is None or first_heading.group(1) != expected_title:
+            issues.append(f"{lab_dir.name}: README title must be exactly: {expected_title}")
+
+    difficulty_label = DIFFICULTY_LABELS.get(manifest["difficulty"])
+    if difficulty_label is None:
+        issues.append(
+            f"{lab_dir.name}: unsupported manifest difficulty: {manifest['difficulty']}"
+        )
+    else:
+        difficulty_section = sections.get("难度与预计时间", "")
+        if difficulty_label not in difficulty_section:
+            issues.append(
+                f"{lab_dir.name}: difficulty section missing localized value: {difficulty_label}"
+            )
+        if str(manifest["estimated_minutes"]) not in difficulty_section:
+            issues.append(
+                f"{lab_dir.name}: difficulty section missing estimated minutes: "
+                f"{manifest['estimated_minutes']}"
+            )
 
     expected_fragments = (
-        manifest["difficulty"],
-        str(manifest["estimated_minutes"]),
         manifest["validation"]["expected_failure_marker"],
         f"python tools/labctl.py check {manifest['id']:02d}",
         f"python tools/labctl.py reset {manifest['id']:02d}",

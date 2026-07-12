@@ -1,42 +1,42 @@
-# Lab 20 - External JSON and CSV Data Shaping
+# Lab 20：外部 JSON 与 CSV 数据塑形
 
-## Scenario
+## 场景
 
-An application catalog and bucket policy table arrive as JSON and CSV files. The starter decodes both files, but it retains positional identities and raw string-shaped CSV rows. Normalize the data before using it.
+应用目录和 bucket 策略表分别以 JSON 与 CSV 文件的形式提供。starter 已解码这两个文件，但仍保留基于位置的身份，并保留以原始字符串为字段的 CSV 行。请在使用这些数据前完成规范化。
 
-## Skills tested
+## 考查技能
 
-- `file`, `jsondecode`, and `csvdecode`
-- Collection normalization and type conversion
-- Stable `for_each` keys
-- Map-shaped outputs and empty-input behavior
+- `file`、`jsondecode` 和 `csvdecode`
+- 集合规范化与类型转换
+- 稳定的 `for_each` 键
+- map 形式的输出和空输入行为
 
-## Difficulty and estimated time
+## 难度与预计时间
 
-- Difficulty: medium
-- Estimated time: 25 minutes
+- 难度：中等
+- 预计时间：25 分钟
 
-## Execution mode
+## 执行模式
 
-Local Terraform authoring with deterministic fixtures and `terraform_data`.
+使用确定性 fixture 和 `terraform_data` 在本地编写 Terraform 配置。
 
-## Cloud credentials required
+## 是否需要云凭据
 
-No.
+否。
 
-## Cost risk
+## 成本风险
 
-None.
+无。
 
-## Starting state
+## 初始状态
 
-The starter reads the protected fixtures and filters disabled apps, but uses numeric identities, returns a list, and leaves decoded CSV fields as strings.
+starter 会读取受保护的 fixture 并过滤已禁用的应用，但它使用数字身份、返回 list，并将解码后的 CSV 字段保留为字符串。
 
-## Files allowed to edit
+## 允许编辑的文件
 
 - `starter/main.tf`
 
-## Files not allowed to edit
+## 禁止编辑的文件
 
 - `starter/versions.tf`
 - `fixtures/`
@@ -44,49 +44,49 @@ The starter reads the protected fixtures and filters disabled apps, but uses num
 - `scripts/`
 - `lab.yaml`
 
-## Tasks
+## 任务
 
-1. Normalize enabled JSON app records into a map keyed by app name.
-2. Use that stable map for the app records and preserve keys in the output.
-3. Normalize CSV rows into a map keyed by bucket name.
-4. Convert non-empty lifecycle days to numbers and represent an empty field as `null`.
-5. Support the protected empty and boundary fixtures without special cases.
-6. Preserve the filename validation boundary for the selected JSON and CSV inputs.
+1. 将已启用的 JSON 应用记录规范化为以应用名称为键的 map。
+2. 将该稳定 map 用于应用记录，并在输出中保留这些键。
+3. 将 CSV 行规范化为以 bucket 名称为键的 map。
+4. 将非空生命周期天数转换为数字，并将空字段表示为 `null`。
+5. 无需特殊处理即可支持受保护的空输入和边界 fixture。
+6. 保留对所选 JSON 和 CSV 输入的文件名验证边界。
 
-## Constraints
+## 约束
 
-- Read data from the selected fixture files; do not reproduce fixture content in HCL.
-- Do not use numeric or positional resource keys.
-- Do not edit protected fixtures or tests.
-- Keep the default workflow provider-free and local.
+- 从所选 fixture 文件读取数据；不要在 HCL 中复写 fixture 内容。
+- 不要使用数字或基于位置的资源键。
+- 不要编辑受保护的 fixture 或测试。
+- 保持默认工作流不使用 provider 且仅在本地运行。
 
-## Expected initial failure
+## 预期初始失败
 
-`python tools/labctl.py check 20` reports `EXPECTED_EXTERNAL_DATA_SHAPING_INCOMPLETE` because the decoded results do not have the required stable map shapes or normalized CSV types.
+`python tools/labctl.py check 20` 会报告 `EXPECTED_EXTERNAL_DATA_SHAPING_INCOMPLETE`，因为解码结果不具备所需的稳定 map 结构，也没有规范化 CSV 类型。
 
-## Validation commands
+## 验证命令
 
 ```text
 python tools/labctl.py check 20
 python tools/labctl.py status 20
 ```
 
-## Success criteria
+## 成功标准
 
-- Default managed app resource keys are exactly `assets` and `logs`.
-- App values retain the exact team and versioning data.
-- Bucket settings are keyed by name with numeric-or-null lifecycle days.
-- Empty JSON produces zero app resources and an empty map.
-- The zero-day CSV boundary remains numeric zero.
-- Invalid fixture extensions are rejected by their corresponding input variables.
+- 默认受管理应用的资源键恰好为 `assets` 和 `logs`。
+- 应用值保留精确的团队和 versioning 数据。
+- bucket 设置以名称为键，生命周期天数为数字或 null。
+- 空 JSON 产生零个应用资源和一个空 map。
+- CSV 中零天的边界值保持为数字零。
+- 无效的 fixture 扩展名会被对应的输入变量拒绝。
 
-## Reset instructions
+## 重置说明
 
 ```text
 python tools/labctl.py reset 20
 ```
 
-## Limited hints
+## 有限提示
 
-- Decode first, then reshape into the collection used by `for_each`.
-- Normalize the empty CSV string before numeric conversion.
+- 先解码，再将数据重塑为 `for_each` 使用的集合。
+- 在进行数字转换前，先规范化 CSV 中的空字符串。

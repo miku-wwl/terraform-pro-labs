@@ -1,89 +1,89 @@
-# Lab 21 - Dynamic Nested Ingress Blocks
+# Lab 21：动态嵌套 ingress 块
 
-## Scenario
+## 场景
 
-A security group currently repeats two static ingress blocks even though ingress policy is supplied as structured input. Replace the duplication with input-driven nested blocks that work for any valid rule list.
+虽然 ingress 策略已经以结构化输入提供，但某个 security group 目前仍重复定义两个静态 ingress 块。请将重复内容替换为输入驱动的嵌套块，使其适用于任何有效的规则列表。
 
-## Skills tested
+## 考查技能
 
-- `dynamic` nested blocks and iterator scope
-- The distinction between resource `for_each` and nested-block repetition
-- Preserving object content in provider schema blocks
-- Terraform mock-provider tests
+- `dynamic` 嵌套块与迭代器作用域
+- 资源 `for_each` 与嵌套块重复之间的区别
+- 在 provider schema 块中保留对象内容
+- Terraform mock provider 测试
 
-## Difficulty and estimated time
+## 难度与预计时间
 
-- Difficulty: medium
-- Estimated time: 20 minutes
+- 难度：中等
+- 预计时间：20 分钟
 
-## Execution mode
+## 执行模式
 
-AWS provider schema planning through Terraform's mock provider. No AWS API call is made.
+通过 Terraform mock provider 使用 AWS provider schema 生成 plan。不调用 AWS API。
 
-## Cloud credentials required
+## 是否需要云凭据
 
-No.
+否。
 
-## Cost risk
+## 成本风险
 
-None. Tests only create mocked plans.
+无。测试只创建模拟 plan。
 
-## Starting state
+## 初始状态
 
-The input type and validation are present, but the resource contains two hardcoded ingress blocks and therefore ignores alternate rule collections.
+输入类型和验证已经存在，但资源包含两个硬编码的 ingress 块，因此会忽略替代规则集合。
 
-## Files allowed to edit
+## 允许编辑的文件
 
 - `starter/main.tf`
 
-## Files not allowed to edit
+## 禁止编辑的文件
 
 - `starter/versions.tf`
 - `tests/`
 - `scripts/`
 - `lab.yaml`
 
-## Tasks
+## 任务
 
-1. Replace the repeated static ingress blocks with one dynamic nested-block construct.
-2. Drive its repetition from `var.ingress_rules`.
-3. Preserve each rule's description, port, and CIDR in the generated provider block.
-4. Keep the fixed outbound rule and port validation intact.
+1. 使用一个动态嵌套块结构替换重复的静态 ingress 块。
+2. 使用 `var.ingress_rules` 驱动其重复生成。
+3. 在生成的 provider 块中保留每条规则的描述、端口和 CIDR。
+4. 保持固定的出站规则和端口验证不变。
 
-## Constraints
+## 约束
 
-- Do not create multiple security-group resources.
-- Do not retain static ingress blocks.
-- Do not hardcode the protected alternate test values.
-- Do not remove or edit lifecycle-independent protected tests.
+- 不要创建多个 security group 资源。
+- 不要保留静态 ingress 块。
+- 不要硬编码受保护测试中的替代测试值。
+- 不要移除或编辑与 lifecycle 无关的受保护测试。
 
-## Expected initial failure
+## 预期初始失败
 
-`python tools/labctl.py check 21` reports `EXPECTED_DYNAMIC_BLOCK_INCOMPLETE` because an alternate three-rule input still renders the two hardcoded blocks.
+`python tools/labctl.py check 21` 会报告 `EXPECTED_DYNAMIC_BLOCK_INCOMPLETE`，因为由三条规则组成的替代输入仍会渲染两个硬编码块。
 
-## Validation commands
+## 验证命令
 
 ```text
 python tools/labctl.py check 21
 python tools/labctl.py status 21
 ```
 
-## Success criteria
+## 成功标准
 
-- Default input renders exactly two matching ingress blocks.
-- Alternate input renders exactly three blocks with exact descriptions, ports, and CIDRs.
-- The fixed outbound boundary remains exactly one all-protocol egress rule to `0.0.0.0/0`.
-- Invalid ports are rejected.
-- The source uses a dynamic ingress construct and contains no static ingress duplication.
-- Validation performs no AWS authentication or API operation.
+- 默认输入恰好渲染两个内容匹配的 ingress 块。
+- 替代输入恰好渲染三个块，且描述、端口和 CIDR 完全匹配。
+- 固定的出站边界保持为恰好一条指向 `0.0.0.0/0` 的全协议 egress 规则。
+- 无效端口会被拒绝。
+- 源代码使用动态 ingress 结构，且不包含重复的静态 ingress 块。
+- 验证不会执行 AWS 身份验证或 API 操作。
 
-## Reset instructions
+## 重置说明
 
 ```text
 python tools/labctl.py reset 21
 ```
 
-## Limited hints
+## 有限提示
 
-- A dynamic block has a collection expression, an iterator, and a content body.
-- Values inside the content body come from the current iterator element.
+- dynamic 块包含集合表达式、迭代器和 content 块体。
+- content 块体中的值来自当前迭代器元素。

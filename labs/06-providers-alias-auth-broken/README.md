@@ -1,88 +1,88 @@
-# Lab 06 - Provider Requirements, Aliases, and Authentication Boundary
+# Lab 06：Provider 要求、别名与认证边界
 
-## Scenario
+## 场景
 
-A root configuration reads two AWS regions through default and aliased provider configurations. The secondary read is accidentally routed through the default provider, and the default configuration pins a workstation-specific profile that breaks portable authentication.
+根配置通过默认和带别名的 provider 配置读取两个 AWS region。次要 region 的读取被意外路由到默认 provider，而默认配置固定了某台工作站专属的 profile，破坏了认证的可移植性。
 
-## Skills tested
+## 考查技能
 
-- `required_providers` source and version declarations
-- Root provider aliases and per-object provider selection
-- Standard AWS credential-chain troubleshooting
-- Credential-free Terraform mock-provider testing
+- 声明 `required_providers` 的 source 和 version
+- 配置根 provider 别名并为每个对象选择 provider
+- 排查标准 AWS 凭据链问题
+- 使用无需凭据的 Terraform mock provider 测试
 
-## Difficulty and estimated time
+## 难度与预计时间
 
-- Difficulty: medium
-- Estimated time: 25 minutes
+- 难度：中等
+- 预计时间：25 分钟
 
-## Execution mode
+## 执行模式
 
-`aws-mock`. Terraform installs the AWS provider schema but performs no authentication or AWS API call.
+`aws-mock`。Terraform 会安装 AWS provider schema，但不会执行认证或发起 AWS API 调用。
 
-## Cloud credentials required
+## 是否需要云凭据
 
-No.
+不需要。
 
-## Cost risk
+## 成本风险
 
-None; plans use mock providers only.
+无；计划只使用 mock provider。
 
-## Starting state
+## 初始状态
 
-The protected provider requirement is valid. The secondary data source uses the wrong provider configuration, while the default provider pins a nonexistent local profile.
+受保护的 provider 要求是有效的。次要 data source 使用了错误的 provider 配置，而默认 provider 固定了一个不存在的本地 profile。
 
-## Files allowed to edit
+## 允许编辑的文件
 
 - `starter/main.tf`
 
-## Files not allowed to edit
+## 禁止编辑的文件
 
 - `starter/versions.tf`
 - `tests/`
 - `scripts/`
 - `lab.yaml`
 
-## Tasks
+## 任务
 
-1. Confirm the required provider source and compatible major-version constraint.
-2. Route each region data source through its intended provider configuration.
-3. Remove workstation-specific authentication selection so normal AWS credential-chain resolution remains portable.
-4. Verify both provider paths through mock results without using credentials.
+1. 确认 required provider 的 source 和兼容的主版本约束。
+2. 将每个 region data source 路由到预期的 provider 配置。
+3. 移除工作站专属的认证选择，使标准 AWS 凭据链解析保持可移植性。
+4. 在不使用凭据的情况下，通过 mock 结果验证两条 provider 路径。
 
-## Constraints
+## 约束
 
-- Do not add access keys, secret keys, tokens, account identifiers, or credential fixtures.
-- Do not add credential-validation skip flags as a substitute for correct authentication.
-- Preserve the two configured regions and the `aws.secondary` alias.
-- Do not edit protected tests or provider requirements.
+- 不得添加 access key、secret key、token、account 标识符或凭据 fixture。
+- 不得添加凭据验证 skip_* 标志来代替正确认证。
+- 保留两个已配置的 region 和 `aws.secondary` 别名。
+- 不得编辑受保护的测试或 provider 要求。
 
-## Expected initial failure
+## 预期初始失败
 
-`python tools/labctl.py check 06` reports `EXPECTED_PROVIDER_ALIAS_AUTH_INCOMPLETE` because the secondary read uses the default provider and authentication is pinned to a local profile.
+`python tools/labctl.py check 06` 会报告 `EXPECTED_PROVIDER_ALIAS_AUTH_INCOMPLETE`，因为次要读取使用了默认 provider，并且认证固定到本地 profile。
 
-## Validation commands
+## 验证命令
 
 ```text
 python tools/labctl.py check 06
 python tools/labctl.py status 06
 ```
 
-## Success criteria
+## 成功标准
 
-- The AWS provider requirement retains the `hashicorp/aws` source and `~> 6.0` constraint.
-- The default provider remains `us-east-1`; `aws.secondary` remains `us-west-2`.
-- Mock outputs and source checks prove primary and secondary reads use their intended provider configurations.
-- No profile, credential/config file, explicit credential value, assume-role block, or `skip_*` bypass is pinned in Terraform configuration.
-- No real AWS authentication or API request occurs.
+- AWS provider 要求保留 `hashicorp/aws` source 和 `~> 6.0` 约束。
+- 默认 provider 保持为 `us-east-1`；`aws.secondary` 保持为 `us-west-2`。
+- mock 输出和源代码检查证明 primary 与 secondary 读取使用各自预期的 provider 配置。
+- Terraform 配置中不得固定 profile、credential/config file、显式凭据值、assume-role 块或 `skip_*` 绕过配置。
+- 不发生真实 AWS 认证或 API 请求。
 
-## Reset instructions
+## 重置说明
 
 ```text
 python tools/labctl.py reset 06
 ```
 
-## Limited hints
+## 有限提示
 
-- Provider selection is explicit on a data source or resource when it should not use the default configuration.
-- A portable root module normally lets credentials come from the standard external chain.
+- 当 data source 或资源不应使用默认配置时，需要为其显式指定 provider。
+- 可移植的根模块通常让凭据来自标准外部凭据链。
