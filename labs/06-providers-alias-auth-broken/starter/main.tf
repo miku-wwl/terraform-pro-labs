@@ -1,6 +1,5 @@
 provider "aws" {
-  region  = "us-east-1"
-  profile = "missing-training-profile"
+  region = "us-east-1"
 }
 
 provider "aws" {
@@ -10,7 +9,9 @@ provider "aws" {
 
 data "aws_region" "primary" {}
 
-data "aws_region" "secondary" {}
+data "aws_region" "secondary" {
+  provider = aws.secondary
+}
 
 output "provider_regions" {
   value = {
