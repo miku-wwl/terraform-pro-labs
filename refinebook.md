@@ -149,3 +149,61 @@ data "aws_region" "secondary" {
   provider = aws.secondary
 }
 ```
+
+## 核心知识（Lab 7）
+
+- `validation`：在输入阶段拒绝无效变量值。
+- `precondition`：在资源计划前阻止不安全的配置组合。
+- `check`：断言失败只发出警告，不阻止计划或 apply。
+
+## 最小代码（Lab 7）
+
+```hcl
+variable "environment" {
+  type = string
+  validation {
+    condition     = contains(["dev", "stage", "prod"], var.environment)
+    error_message = "Unsupported environment."
+  }
+}
+
+resource "terraform_data" "deployment" {
+  lifecycle {
+    precondition {
+      condition     = var.environment != "prod" || var.instance_type != "t3.micro"
+      error_message = "t3.micro is not allowed in prod."
+    }
+  }
+}
+
+check "name_quality" {
+  assert {
+    condition     = length(var.name_prefix) >= 5
+    error_message = "Prefix is too short."
+  }
+}
+```
+
+## 核心知识（Lab 8）
+
+- EC2 权限链：`EC2 → Instance Profile → IAM Role → IAM Policy`。
+- Role 的信任策略决定“谁能扮演”；Policy 决定“能做什么”。
+- 用资源引用连接 Role、Policy 与 Profile，避免硬编码名称。
+- IAM Policy 应遵循最小权限原则。
+
+## 最小代码（Lab 8）
+
+```hcl
+resource "aws_iam_role_policy_attachment" "app" {
+  role       = aws_iam_role.app.name
+  policy_arn = aws_iam_policy.app.arn
+}
+
+resource "aws_iam_instance_profile" "app" {
+  role = aws_iam_role.app.name
+}
+
+resource "aws_instance" "app" {
+  iam_instance_profile = aws_iam_instance_profile.app.name
+}
+```

@@ -1,3 +1,10 @@
+# IAM → EC2 权限链复盘：
+# 1. IAM Role：定义谁能扮演角色；EC2 信任关系为 Principal = { Service = "ec2.amazonaws.com" }。
+# 2. IAM Policy：定义角色能做什么；此处仅允许 s3:GetObject 与 s3:ListBucket。
+# 3. Role Policy Attachment：将 Policy 绑定到 Role；role 应引用 aws_iam_role.app.name。
+# 4. Instance Profile：EC2 不能直接关联 Role，Profile 通过 role = aws_iam_role.app.name 包含该 Role。
+# 5. EC2：通过 iam_instance_profile = aws_iam_instance_profile.app.name 获得这套权限。
+
 variable "name_prefix" {
   description = "Prefix for mocked IAM and EC2 objects."
   type        = string
@@ -46,7 +53,7 @@ resource "aws_iam_policy" "app" {
 }
 
 resource "aws_iam_role_policy_attachment" "app" {
-  role       = "${var.name_prefix}-other-role"
+  role       = aws_iam_role.app.name
   policy_arn = aws_iam_policy.app.arn
 }
 
@@ -58,7 +65,7 @@ resource "aws_iam_instance_profile" "app" {
 resource "aws_instance" "app" {
   ami                  = var.ami_id
   instance_type        = "t3.micro"
-  iam_instance_profile = null
+  iam_instance_profile = aws_iam_instance_profile.app.name
 
   tags = { Name = "${var.name_prefix}-instance" }
 }

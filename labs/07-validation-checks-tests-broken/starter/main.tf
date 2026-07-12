@@ -4,8 +4,7 @@ variable "environment" {
   default     = "dev"
 
   validation {
-    # TODO: Reject unsupported environment names.
-    condition     = var.environment != ""
+    condition     = var.environment == "dev" || var.environment == "stage" || var.environment == "prod"
     error_message = "environment is not supported."
   }
 }
@@ -35,8 +34,7 @@ resource "terraform_data" "deployment" {
 
   lifecycle {
     precondition {
-      # TODO: Reject the unsafe production size combination.
-      condition     = var.instance_type != ""
+      condition     = var.environment != "prod" || var.instance_type != "t3.micro"
       error_message = "production instance type is unsafe."
     }
   }
@@ -48,8 +46,7 @@ output "deployment_summary" {
 
 check "name_prefix_quality" {
   assert {
-    # TODO: Warn when the prefix does not meet the naming-quality rule.
-    condition     = var.name_prefix != ""
+    condition     = length(var.name_prefix) >= 5
     error_message = "name_prefix does not meet the readability guideline."
   }
 }
