@@ -75,7 +75,8 @@ python tools/labctl.py status 10
 - Default inputs yield prefix `payments-dev`, profile `payments-dev-profile`, and compute reference `payments-dev::payments-dev-profile`.
 - Alternate valid inputs flow through every child module without hardcoded default values.
 - An unsupported environment is rejected by the protected naming module contract.
-- The compute module receives the identity module's profile output through a Terraform reference.
+- Plan-configuration inspection proves the naming, identity, and compute module arguments use the required upstream references.
+- The root output directly exposes the naming, identity, and compute module outputs instead of reconstructing equal strings.
 
 ## Reset instructions
 

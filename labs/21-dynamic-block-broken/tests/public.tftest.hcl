@@ -19,6 +19,17 @@ run "default_rules_render_exact_nested_blocks" {
     ])
     error_message = "Every default nested block must preserve its port, protocol, and CIDR content."
   }
+
+  assert {
+    condition = (
+      length(aws_security_group.web.egress) == 1 &&
+      one(aws_security_group.web.egress).from_port == 0 &&
+      one(aws_security_group.web.egress).to_port == 0 &&
+      one(aws_security_group.web.egress).protocol == "-1" &&
+      one(one(aws_security_group.web.egress).cidr_blocks) == "0.0.0.0/0"
+    )
+    error_message = "The fixed outbound boundary must remain one all-protocol IPv4 egress block."
+  }
 }
 
 run "alternate_input_controls_count_and_content" {

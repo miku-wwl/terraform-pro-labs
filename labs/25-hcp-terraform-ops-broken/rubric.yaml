@@ -7,7 +7,11 @@
     "correct_choice_points_per_decision": 10,
     "substantive_rationale_points_per_decision": 2,
     "complete_response_bonus": 4,
-    "minimum_rationale_words": 12
+    "minimum_rationale_words": 18,
+    "minimum_selected_option_terms": 2,
+    "minimum_focus_terms": 1,
+    "minimum_scenario_terms": 2,
+    "minimum_novel_terms": 4
   },
   "dimensions": [
     {

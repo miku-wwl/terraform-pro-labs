@@ -4,8 +4,12 @@
 from __future__ import annotations
 
 import argparse
+import json
 import re
+import shutil
+import subprocess
 import sys
+import tempfile
 from pathlib import Path
 
 
@@ -70,6 +74,94 @@ def mask_comments(text: str) -> str:
     return "".join(output)
 
 
+def mask_comments_and_strings(text: str) -> str:
+    """Preserve executable HCL structure while masking comments and string bodies."""
+
+    output = list(text)
+    index = 0
+    state = "normal"
+    while index < len(text):
+        char = text[index]
+        next_char = text[index + 1] if index + 1 < len(text) else ""
+        if state == "normal":
+            if char == '"':
+                output[index] = " "
+                state = "string"
+            elif char == "#":
+                output[index] = " "
+                state = "line"
+            elif char == "/" and next_char == "/":
+                output[index] = output[index + 1] = " "
+                index += 1
+                state = "line"
+            elif char == "/" and next_char == "*":
+                output[index] = output[index + 1] = " "
+                index += 1
+                state = "block"
+        elif state == "string":
+            output[index] = "\n" if char == "\n" else " "
+            if char == "\\" and index + 1 < len(text):
+                output[index + 1] = " "
+                index += 1
+            elif char == '"':
+                state = "normal"
+        elif state == "line":
+            if char == "\n":
+                state = "normal"
+            else:
+                output[index] = " "
+        elif state == "block":
+            if char == "*" and next_char == "/":
+                output[index] = output[index + 1] = " "
+                index += 1
+                state = "normal"
+            elif char != "\n":
+                output[index] = " "
+        index += 1
+    return "".join(output)
+
+
+def mask_heredocs(text: str, masked: str) -> str:
+    """Mask heredoc introducers and bodies after comments/quoted strings are masked."""
+
+    output = list(masked)
+    active_delimiter: str | None = None
+    allow_indented_delimiter = False
+    offset = 0
+    for raw_line in text.splitlines(keepends=True):
+        line_end = offset + len(raw_line)
+        if active_delimiter is not None:
+            candidate = raw_line.rstrip("\r\n")
+            is_terminator = (
+                candidate.strip() == active_delimiter
+                if allow_indented_delimiter
+                else candidate == active_delimiter
+            )
+            for index in range(offset, line_end):
+                if text[index] not in "\r\n":
+                    output[index] = " "
+            if is_terminator:
+                active_delimiter = None
+                allow_indented_delimiter = False
+        else:
+            match = re.search(
+                r"<<(-?)([A-Za-z_][A-Za-z0-9_]*)",
+                masked[offset:line_end],
+            )
+            if match is not None:
+                active_delimiter = match.group(2)
+                allow_indented_delimiter = match.group(1) == "-"
+                for index in range(offset + match.start(), line_end):
+                    if text[index] not in "\r\n":
+                        output[index] = " "
+        offset = line_end
+    return "".join(output)
+
+
+def executable_structure(text: str) -> str:
+    return mask_heredocs(text, mask_comments_and_strings(text))
+
+
 def matching_brace(text: str, opening: int) -> int:
     depth = 0
     index = opening
@@ -108,14 +200,34 @@ def matching_brace(text: str, opening: int) -> int:
     raise ValueError("unclosed backend block")
 
 
-def backend_bodies(text: str) -> list[str]:
-    masked = mask_comments(text)
-    bodies: list[str] = []
-    for match in re.finditer(r'\bbackend\s+"s3"\s*\{', masked):
+def backend_spans(text: str) -> list[tuple[int, int]]:
+    masked = executable_structure(text)
+    spans: list[tuple[int, int]] = []
+    for match in re.finditer(r"\bbackend\s+\{", masked):
         opening = masked.find("{", match.start())
+        declaration = text[match.start():opening]
+        if re.fullmatch(r'backend\s+"s3"\s*', declaration) is None:
+            continue
         closing = matching_brace(text, opening)
-        bodies.append(text[opening + 1 : closing])
+        spans.append((match.start(), closing + 1))
+    return spans
+
+
+def backend_bodies(text: str) -> list[str]:
+    bodies: list[str] = []
+    for start, end in backend_spans(text):
+        opening = text.find("{", start, end)
+        bodies.append(text[opening + 1 : end - 1])
     return bodies
+
+
+def without_backend_blocks(text: str) -> str:
+    output = text
+    for start, end in reversed(backend_spans(text)):
+        output = output[:start] + "".join(
+            "\n" if char == "\n" else " " for char in output[start:end]
+        ) + output[end:]
+    return output
 
 
 def assignments(body: str) -> dict[str, str]:
@@ -164,6 +276,18 @@ def verify_negative_fixtures(tests_dir: Path) -> list[str]:
         missing = expected_codes - actual_codes
         if missing:
             failures.append(f"{filename} did not produce: {', '.join(sorted(missing))}")
+    heredoc_decoy = '''locals {
+  decoy = <<-EOT
+    backend "s3" {
+      encrypt      = true
+      use_lockfile = true
+    }
+  EOT
+}
+'''
+    decoy_codes = {code for code, _ in inspect_backend_text(heredoc_decoy)}
+    if "BACKEND_BLOCK_COUNT" not in decoy_codes:
+        failures.append("heredoc text was incorrectly treated as an executable backend block")
     return failures
 
 
@@ -202,6 +326,64 @@ def verify_examples(examples_dir: Path) -> list[str]:
     return failures
 
 
+def run(terraform: str, cwd: Path, *args: str) -> subprocess.CompletedProcess[str]:
+    return subprocess.run(
+        [terraform, *args], cwd=cwd, text=True, stdout=subprocess.PIPE,
+        stderr=subprocess.STDOUT, check=False
+    )
+
+
+def verify_ordinary_configuration(starter: Path, combined: str) -> list[str]:
+    failures: list[str] = []
+    if re.search(r"(?m)^\s*provider\s+", executable_structure(combined)):
+        failures.append("provider configuration is outside this backend-only exercise")
+        return failures
+
+    terraform = shutil.which("terraform")
+    if terraform is None:
+        return ["Terraform executable was not found"]
+    try:
+        with tempfile.TemporaryDirectory(prefix="tfpro-lab31-") as temporary:
+            workdir = Path(temporary)
+            for source in starter.glob("*.tf"):
+                transformed = without_backend_blocks(source.read_text(encoding="utf-8"))
+                (workdir / source.name).write_text(transformed, encoding="utf-8")
+            initialized = run(
+                terraform, workdir, "init", "-backend=false", "-input=false", "-no-color"
+            )
+            if initialized.returncode:
+                return [f"backend-free ordinary init failed: {initialized.stdout.strip()}"]
+            for environment in ("dev", "test", "prod"):
+                plan_name = f"ordinary-{environment}.tfplan"
+                planned = run(
+                    terraform, workdir, "plan", "-input=false", "-no-color",
+                    "-var", f"environment={environment}", "-out", plan_name
+                )
+                if planned.returncode:
+                    return [
+                        f"backend-free ordinary {environment} plan failed: "
+                        f"{planned.stdout.strip()}"
+                    ]
+                shown = run(terraform, workdir, "show", "-json", plan_name)
+                if shown.returncode:
+                    return [
+                        f"ordinary {environment} plan JSON failed: {shown.stdout.strip()}"
+                    ]
+                outputs = json.loads(shown.stdout)["planned_values"].get("outputs", {})
+                if set(outputs) != {"deployment_label"}:
+                    failures.append(
+                        f"ordinary {environment} output set must contain only deployment_label"
+                    )
+                elif outputs["deployment_label"].get("value") != f"network-{environment}":
+                    failures.append(
+                        f"deployment_label must derive from environment={environment}"
+                    )
+    except (KeyError, OSError, ValueError, json.JSONDecodeError) as exc:
+        return [f"ordinary configuration verification failed: {exc}"]
+
+    return failures
+
+
 def build_parser() -> argparse.ArgumentParser:
     parser = argparse.ArgumentParser(description=__doc__)
     parser.add_argument("--starter", type=Path, required=True)
@@ -236,8 +418,16 @@ def main() -> int:
             print(f"  - {code}: {message}")
         return 2
 
+    ordinary_failures = verify_ordinary_configuration(args.starter, combined)
+    if ordinary_failures:
+        print("EXPECTED_PARTIAL_BACKEND_INCOMPLETE: ordinary/provider/backend isolation is incorrect.")
+        for failure in ordinary_failures:
+            print(f"  - {failure}")
+        return 2
+
     print("PASS: static backend block contains only shared safety settings.")
     print("PASS: environment-specific backend parameters are supplied only by init-time example files.")
+    print("PASS: provider configuration is absent and ordinary environment evaluation remains isolated.")
     return 0
 
 

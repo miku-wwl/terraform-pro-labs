@@ -53,7 +53,7 @@ None. Validation reads local Markdown and rubric files only.
 
 1. Read the scenario and all option definitions.
 2. Replace every `undecided` value with exactly one option ID from the corresponding question.
-3. Write a concise rationale under every matching decision heading.
+3. Write a concise rationale under every matching decision heading that explains the selected option, addresses the public rubric focus, and connects it to scenario facts in your own words.
 4. Keep all decision IDs and Markdown headings unchanged so the scorer can locate them.
 
 ## Constraints
@@ -85,11 +85,17 @@ python labs/25-hcp-terraform-ops-broken/scripts/score_answer.py --rubric labs/25
 
 - All eight operating decisions use valid option IDs.
 - The choices correctly distinguish routine VCS runs from exceptional API automation.
-- Pull requests use a non-applicable plan path.
+- Pull requests use a speculative plan path that cannot apply.
 - Workspace dependency direction follows producer-to-consumer apply success.
 - Production policy, permissions, and auto-apply choices preserve an approval boundary.
 - Cost-estimation limitations are acknowledged.
-- Every decision has a substantive rationale and the score meets the published threshold.
+- Every decision has a rationale with locally verifiable evidence tying the selected option to the rubric focus and scenario, and the score meets the published threshold.
+
+## Local scoring boundary
+
+The scorer verifies structured choices, minimum rationale length, lexical consistency with the option you selected, coverage of the public rubric focus and scenario, and some independent explanation beyond copied option text. These checks are applied identically to every option and do not expose canonical choices or require exact prose.
+
+Local scoring cannot prove that free-form reasoning is nuanced, factually complete, or persuasive. A passing score means the response satisfies the deterministic practice rubric; semantic depth remains **NOT VERIFIED** without human review.
 
 ## Reset instructions
 

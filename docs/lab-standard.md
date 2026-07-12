@@ -6,6 +6,11 @@ Phase 13 release review: all 32 labs were accepted against this unchanged standa
 defect was found and no requirement was redesigned. The final repository checker operationalizes
 the existing manifest, README, path, starter-leakage, test-quality, cloud-safety, and CI checks.
 
+Storage-model amendment (2026-07-12): at the repository owner's direction, canonical solutions are
+not stored on any repository branch. This changes only answer storage, not the solution gate: every
+lab must still be verified with a transient canonical implementation, reset, and verified again.
+The amendment affects all 32 labs and removes the unused solution-branch CI contract.
+
 This document defines the frozen contract for future migration phases. The Phase 5 migration report records the five pilots certified against this version. A later change to this standard requires a concrete defect, a recorded reason, the affected lab list, and remediation notes in the migration report.
 
 ## 1. Goals
@@ -62,7 +67,10 @@ labs/NN-topic/
 └── scripts/
 ```
 
-The learner-facing branch must not contain `solution/`, `SOLUTION.md`, answer keys, disabled solution blocks, or filenames that reveal exact answers. Canonical solutions and private grader tests belong on the designated solution/grader branch.
+The repository must not contain `solution/`, `SOLUTION.md`, answer keys, disabled solution blocks,
+or filenames that reveal exact answers. Canonical implementations are reconstructed only in an
+isolated temporary copy for acceptance and are deleted afterward. A learner validates their own
+completed starter locally with `labctl check <lab-id> --mode solution`.
 
 ## 5. Manifest contract
 
@@ -254,7 +262,9 @@ Tooling must work on Windows and Linux, use explicit exit codes, avoid shell inj
 
 Reset must remove only generated artifacts such as `.terraform/`, lab-owned state, plans, generated fixtures, backend metadata, and lab-created workspaces. It must preserve source files, user answers where documented, global Terraform configuration, and unrelated state.
 
-For every migrated lab, execute: reset; starter gate; solution gate; reset; repeat the solution gate. Record both runs.
+For every migrated lab, execute: reset; starter gate; apply the canonical implementation only in an
+isolated temporary copy; solution gate; reset; repeat the solution gate; delete the temporary copy.
+Record both runs without retaining the answer in the repository.
 
 ## 17. Migration acceptance checklist
 

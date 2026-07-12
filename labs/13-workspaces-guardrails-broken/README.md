@@ -48,7 +48,8 @@ source workspace is selected or changed by the verifier.
 
 1. Derive the active environment from the selected workspace.
 2. Select the exact settings for dev, staging, and prod.
-3. Allow production only when capacity is not `t3.micro` and `auto_approve` is false.
+3. Allow production only when capacity is one of the approved sizes (`t3.large`, `t3.xlarge`, or
+   `t3.2xlarge`) and `auto_approve` is false.
 4. Preserve the resource and output contracts.
 
 ## Constraints
@@ -74,7 +75,8 @@ python tools/labctl.py check 13
 - every environment has only `terraform_data.deployment` in its state;
 - workspace outputs match the exact replica, tier, and instance settings;
 - no plan contains a destroy and each post-apply plan is no-op;
-- prod rejects both undersized capacity and auto-approve.
+- prod accepts all three approved sizes, rejects `t3.micro`, `t3.small`, and an unapproved
+  non-small instance family, and rejects auto-approve independently.
 
 ## Reset instructions
 

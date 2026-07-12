@@ -72,8 +72,10 @@ python tools/labctl.py status 02
 ## Success criteria
 
 - Default record keys are exactly `archive`, `assets`, and `logs`.
+- Those keys are the actual `terraform_data.record` instance keys, not only output-map keys.
 - Optional versioning records exist only for `archive` and `logs`.
 - Optional retention records exist only for `archive` and `logs`, with the requested day values.
+- An alternate catalog preserves its caller-supplied instance keys, values, and tag precedence.
 - An empty catalog produces empty maps without errors.
 - Invalid retention input is rejected.
 - Item tags override shared tags while required shared tags remain present.

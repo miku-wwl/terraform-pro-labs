@@ -3,6 +3,11 @@ run "default_files_are_normalized_with_stable_keys" {
   module { source = "./starter" }
 
   assert {
+    condition     = toset(keys(terraform_data.app)) == toset(["assets", "logs"])
+    error_message = "Enabled application names must be the exact managed resource keys."
+  }
+
+  assert {
     condition = output.enabled_apps == {
       assets = { name = "assets", team = "web", versioning = false }
       logs   = { name = "logs", team = "platform", versioning = true }
@@ -29,6 +34,11 @@ run "empty_json_and_zero_day_csv_are_safe" {
   }
 
   assert {
+    condition     = length(terraform_data.app) == 0
+    error_message = "An empty JSON catalog must create zero app resource instances."
+  }
+
+  assert {
     condition     = output.enabled_apps == {}
     error_message = "An empty JSON catalog must create no app records and return an empty map."
   }
@@ -39,4 +49,14 @@ run "empty_json_and_zero_day_csv_are_safe" {
     }
     error_message = "The CSV boundary fixture must preserve zero as a number."
   }
+}
+
+run "invalid_fixture_extensions_are_rejected" {
+  command = plan
+  module { source = "./starter" }
+  variables {
+    apps_fixture    = "apps.invalid"
+    buckets_fixture = "buckets.invalid"
+  }
+  expect_failures = [var.apps_fixture, var.buckets_fixture]
 }

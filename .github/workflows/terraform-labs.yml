@@ -10,7 +10,6 @@ permissions:
 
 jobs:
   starter-gates:
-    if: github.ref_name != 'solutions'
     name: Starter gates (${{ matrix.os }})
     runs-on: ${{ matrix.os }}
     strategy:
@@ -33,28 +32,3 @@ jobs:
         run: terraform fmt -check -recursive
       - name: Expected-failure starter gates
         run: python tools/labctl.py check --all
-
-  solution-gates:
-    if: github.ref_name == 'solutions'
-    name: Solution gates (${{ matrix.os }})
-    runs-on: ${{ matrix.os }}
-    strategy:
-      fail-fast: false
-      matrix:
-        os: [ubuntu-latest, windows-latest]
-    env:
-      TF_IN_AUTOMATION: "true"
-    steps:
-      - uses: actions/checkout@v4
-      - uses: actions/setup-python@v5
-        with:
-          python-version: "3.12"
-      - uses: hashicorp/setup-terraform@v3
-        with:
-          terraform_version: "1.14.0"
-      - name: Repository consistency
-        run: python tools/repo_check.py
-      - name: Terraform formatting
-        run: terraform fmt -check -recursive
-      - name: Canonical solution gates
-        run: python tools/labctl.py check --all --mode solution

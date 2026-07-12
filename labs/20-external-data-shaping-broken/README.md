@@ -51,6 +51,7 @@ The starter reads the protected fixtures and filters disabled apps, but uses num
 3. Normalize CSV rows into a map keyed by bucket name.
 4. Convert non-empty lifecycle days to numbers and represent an empty field as `null`.
 5. Support the protected empty and boundary fixtures without special cases.
+6. Preserve the filename validation boundary for the selected JSON and CSV inputs.
 
 ## Constraints
 
@@ -72,11 +73,12 @@ python tools/labctl.py status 20
 
 ## Success criteria
 
-- Default app keys are exactly `assets` and `logs`.
+- Default managed app resource keys are exactly `assets` and `logs`.
 - App values retain the exact team and versioning data.
 - Bucket settings are keyed by name with numeric-or-null lifecycle days.
-- Empty JSON produces no app records and an empty map.
+- Empty JSON produces zero app resources and an empty map.
 - The zero-day CSV boundary remains numeric zero.
+- Invalid fixture extensions are rejected by their corresponding input variables.
 
 ## Reset instructions
 

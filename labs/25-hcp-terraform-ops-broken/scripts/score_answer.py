@@ -30,6 +30,16 @@ PLACEHOLDER_PHRASES = (
     "tbd",
 )
 
+STOPWORDS = {
+    "about", "after", "against", "allow", "allows", "also", "and", "are", "because",
+    "before", "being", "between", "can", "cannot", "change", "changes", "configure",
+    "create", "each", "every", "for", "from", "give", "have", "into", "its", "let",
+    "more", "must", "not", "only", "option", "our", "run", "runs", "should", "than",
+    "that", "the", "their", "them", "then", "these", "they", "this", "through", "to",
+    "use", "uses", "using", "when", "where", "while", "with", "without", "workspace",
+    "workspaces", "would",
+}
+
 
 class ScoringError(ValueError):
     """Raised for malformed rubric or answer artifacts."""
@@ -70,15 +80,45 @@ def selection_digest(decision_id: str, selection: str) -> str:
     return hashlib.sha256(payload).hexdigest()
 
 
-def rationale_is_substantive(text: str, minimum_words: int) -> bool:
+def words(text: str) -> list[str]:
+    return re.findall(r"[A-Za-z0-9][A-Za-z0-9'-]*", text.casefold())
+
+
+def meaningful_terms(text: str) -> set[str]:
+    return {word for word in words(text) if len(word) >= 3 and word not in STOPWORDS}
+
+
+def rationale_evidence(
+    text: str,
+    selected_option: str,
+    focus: str,
+    scenario: str,
+    model: dict[str, Any],
+) -> tuple[bool, list[str]]:
     normalized = " ".join(text.lower().split())
+    failures: list[str] = []
     if normalized.startswith("explain ") or any(phrase in normalized for phrase in PLACEHOLDER_PHRASES):
-        return False
-    words = re.findall(r"[A-Za-z0-9][A-Za-z0-9'-]*", text)
-    return len(words) >= minimum_words
+        failures.append("still contains placeholder language")
+    rationale_words = words(text)
+    if len(rationale_words) < int(model["minimum_rationale_words"]):
+        failures.append("is shorter than the published minimum")
+
+    rationale_terms = meaningful_terms(text)
+    option_terms = meaningful_terms(selected_option)
+    focus_terms = meaningful_terms(focus)
+    scenario_terms = meaningful_terms(scenario)
+    if len(rationale_terms & option_terms) < int(model["minimum_selected_option_terms"]):
+        failures.append("does not explain the selected option in its own terms")
+    if len(rationale_terms & focus_terms) < int(model["minimum_focus_terms"]):
+        failures.append("does not address the rubric focus")
+    if len(rationale_terms & scenario_terms) < int(model["minimum_scenario_terms"]):
+        failures.append("does not connect the choice to the scenario")
+    if len(rationale_terms - option_terms) < int(model["minimum_novel_terms"]):
+        failures.append("does not add enough independent explanation beyond the option text")
+    return not failures, failures
 
 
-def parse_question_options(path: Path) -> dict[str, set[str]]:
+def parse_question_options(path: Path) -> dict[str, dict[str, str]]:
     try:
         text = path.read_text(encoding="utf-8")
     except OSError as exc:
@@ -87,13 +127,16 @@ def parse_question_options(path: Path) -> dict[str, set[str]]:
     headings = list(
         re.finditer(r"(?m)^##\s+\d+\..*\(`([a-z][a-z0-9_]*)`\)\s*$", text)
     )
-    options: dict[str, set[str]] = {}
+    options: dict[str, dict[str, str]] = {}
     for index, heading in enumerate(headings):
         start = heading.end()
         end = headings[index + 1].start() if index + 1 < len(headings) else len(text)
-        options[heading.group(1)] = set(
-            re.findall(r"(?m)^-\s+`([a-z][a-z0-9_]*)`:", text[start:end])
-        )
+        options[heading.group(1)] = {
+            option_id: description.strip()
+            for option_id, description in re.findall(
+                r"(?m)^-\s+`([a-z][a-z0-9_]*)`:\s*(.+?)\s*$", text[start:end]
+            )
+        }
     if not options or any(not values for values in options.values()):
         raise ScoringError("every question must define a decision id and at least one option")
     return options
@@ -103,7 +146,8 @@ def score(
     rubric: dict[str, Any],
     decisions: dict[str, str],
     rationales: dict[str, str],
-    question_options: dict[str, set[str]],
+    question_options: dict[str, dict[str, str]],
+    scenario: str,
 ) -> tuple[int, list[str], list[str]]:
     model = rubric.get("scoring_model")
     dimensions = rubric.get("dimensions")
@@ -124,18 +168,30 @@ def score(
     rationale_points = int(model["substantive_rationale_points_per_decision"])
     bonus = int(model["complete_response_bonus"])
     minimum_words = int(model["minimum_rationale_words"])
+    for field in (
+        "minimum_selected_option_terms",
+        "minimum_focus_terms",
+        "minimum_scenario_terms",
+        "minimum_novel_terms",
+    ):
+        if int(model[field]) < 1:
+            raise ScoringError(f"{field} must be positive")
+    if minimum_words < 1:
+        raise ScoringError("minimum_rationale_words must be positive")
 
     total = 0
     incomplete: list[str] = []
     details: list[str] = []
     all_rationales_complete = True
+    dimensions_by_id = {item["id"]: item for item in dimensions}
     for decision_id in ids:
         selection = decisions.get(decision_id, "")
         rationale = rationales.get(decision_id, "")
+        valid_selection = selection in question_options[decision_id]
         if not selection or selection == "undecided":
             incomplete.append(f"{decision_id}: decision is missing")
             choice_status = "missing"
-        elif selection not in question_options[decision_id]:
+        elif not valid_selection:
             incomplete.append(f"{decision_id}: option '{selection}' is not defined")
             choice_status = "invalid"
         elif hmac.compare_digest(
@@ -146,12 +202,26 @@ def score(
         else:
             choice_status = "incorrect"
 
-        if rationale_is_substantive(rationale, minimum_words):
+        rationale_failures: list[str] = []
+        if valid_selection:
+            rationale_ok, rationale_failures = rationale_evidence(
+                rationale,
+                question_options[decision_id][selection],
+                str(dimensions_by_id[decision_id]["focus"]),
+                scenario,
+                model,
+            )
+        else:
+            rationale_ok = False
+            rationale_failures = ["cannot be checked until a valid option is selected"]
+        if rationale_ok:
             total += rationale_points
-            rationale_status = "substantive"
+            rationale_status = "evidence-complete"
         else:
             all_rationales_complete = False
-            incomplete.append(f"{decision_id}: rationale is incomplete")
+            incomplete.extend(
+                f"{decision_id}: rationale {failure}" for failure in rationale_failures
+            )
             rationale_status = "incomplete"
         details.append(
             f"{decision_id}: choice={choice_status}, rationale={rationale_status}"
@@ -175,7 +245,29 @@ def main() -> int:
         rubric = read_json(args.rubric)
         decisions, rationales = parse_answer(args.answer)
         question_options = parse_question_options(args.answer.parent / "QUESTIONS.md")
-        total, incomplete, details = score(rubric, decisions, rationales, question_options)
+        scenario = (args.answer.parent / "SCENARIO.md").read_text(encoding="utf-8")
+        first_dimension = rubric["dimensions"][0]
+        first_id = first_dimension["id"]
+        first_option = question_options[first_id][sorted(question_options[first_id])[0]]
+        filler_ok, _ = rationale_evidence(
+            "alpha beta gamma delta epsilon zeta eta theta iota kappa lambda mu nu xi omicron pi rho sigma",
+            first_option,
+            first_dimension["focus"],
+            scenario,
+            rubric["scoring_model"],
+        )
+        copied_ok, _ = rationale_evidence(
+            first_option,
+            first_option,
+            first_dimension["focus"],
+            scenario,
+            rubric["scoring_model"],
+        )
+        if filler_ok or copied_ok:
+            raise ScoringError("rationale-evidence negative controls failed")
+        total, incomplete, details = score(
+            rubric, decisions, rationales, question_options, scenario
+        )
         maximum = int(rubric["maximum_score"])
         passing = int(rubric["passing_score"])
         model = rubric["scoring_model"]
@@ -189,7 +281,7 @@ def main() -> int:
             )
         if not 0 < passing <= maximum:
             raise ScoringError("passing_score must be between 1 and maximum_score")
-    except (KeyError, TypeError, ValueError, ScoringError) as exc:
+    except (KeyError, OSError, TypeError, ValueError, ScoringError) as exc:
         print(f"ERROR: {exc}", file=sys.stderr)
         return 3
 
@@ -206,7 +298,7 @@ def main() -> int:
         print("CONCEPTUAL_SCORE_BELOW_THRESHOLD: revisit the scenario tradeoffs.")
         return 1
 
-    print("PASS: conceptual response meets the decision rubric.")
+    print("PASS: conceptual response meets the local decision and rationale-evidence rubric.")
     return 0
 
 

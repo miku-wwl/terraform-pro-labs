@@ -2,12 +2,22 @@ variable "apps_fixture" {
   description = "JSON fixture filename under the protected fixtures directory."
   type        = string
   default     = "apps.json"
+
+  validation {
+    condition     = can(regex("^[A-Za-z0-9][A-Za-z0-9_-]*\\.json$", var.apps_fixture))
+    error_message = "apps_fixture must be a simple .json filename."
+  }
 }
 
 variable "buckets_fixture" {
   description = "CSV fixture filename under the protected fixtures directory."
   type        = string
   default     = "buckets.csv"
+
+  validation {
+    condition     = can(regex("^[A-Za-z0-9][A-Za-z0-9_-]*\\.csv$", var.buckets_fixture))
+    error_message = "buckets_fixture must be a simple .csv filename."
+  }
 }
 
 locals {

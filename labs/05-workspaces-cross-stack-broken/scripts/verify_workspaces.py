@@ -17,6 +17,18 @@ CONSUMER = RUNTIME / "consumer"
 ENVIRONMENTS = ("dev", "prod")
 MARKER = "EXPECTED_WORKSPACE_FLOW_INCOMPLETE"
 GUARDRAIL = "t3.micro is not allowed in the prod workspace."
+EXPECTED_NETWORKS = {
+    "dev": {
+        "vpc_id": "vpc-lab05-dev",
+        "subnet_id": "subnet-lab05-dev",
+        "environment": "dev",
+    },
+    "prod": {
+        "vpc_id": "vpc-lab05-prod",
+        "subnet_id": "subnet-lab05-prod",
+        "environment": "prod",
+    },
+}
 
 
 def run(terraform: str, cwd: Path, *arguments: str) -> subprocess.CompletedProcess[str]:
@@ -80,6 +92,7 @@ def main() -> int:
         shutil.copytree(LAB_DIR / "bootstrap" / "producer", PRODUCER)
         shutil.copytree(LAB_DIR / "starter", CONSUMER)
         require(run(terraform, PRODUCER, "init", "-backend=false", "-input=false", "-no-color"), "producer init")
+        producer_outputs: dict[str, Any] = {}
         for environment in ENVIRONMENTS:
             select(terraform, PRODUCER, environment)
             plan = PRODUCER / f"{environment}.tfplan"
@@ -88,6 +101,9 @@ def main() -> int:
             require(run(terraform, PRODUCER, "apply", "-input=false", "-no-color", plan.name), f"producer {environment} apply")
             if addresses(terraform, PRODUCER) != ["terraform_data.network"]:
                 raise RuntimeError(f"producer {environment} state address is incorrect")
+            producer_outputs[environment] = output_json(terraform, PRODUCER, "network")
+            if producer_outputs[environment] != EXPECTED_NETWORKS[environment]:
+                raise RuntimeError(f"producer {environment} output differs from the protected complete network contract")
         if workspaces(terraform, PRODUCER) != {"default", "dev", "prod"}:
             raise RuntimeError("producer created a workspace outside the lab-owned set")
 
@@ -107,8 +123,11 @@ def main() -> int:
                 raise RuntimeError(f"consumer {environment} state addresses are incorrect")
             network = output_json(terraform, CONSUMER, "network")
             selected = output_json(terraform, CONSUMER, "selected_environment")
-            if selected != environment or network.get("environment") != environment:
-                return incomplete(f"{environment} workspace did not select the matching producer state")
+            if selected != environment or network != producer_outputs[environment]:
+                return incomplete(
+                    f"{environment} workspace did not consume the complete matching producer contract "
+                    "(environment, VPC, and subnet)"
+                )
             final = run(terraform, CONSUMER, "plan", "-input=false", "-no-color", "-var", f"instance_type={instance_type}", "-detailed-exitcode")
             if final.returncode != 0:
                 if final.stdout:

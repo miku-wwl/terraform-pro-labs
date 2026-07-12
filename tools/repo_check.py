@@ -168,7 +168,14 @@ def check_workflow() -> list[str]:
         "ubuntu-latest",
         "windows-latest",
     )
-    return [f"workflow: missing required static token: {item}" for item in required if item not in text]
+    issues = [f"workflow: missing required static token: {item}" for item in required if item not in text]
+    forbidden = ("solution-gates:", "github.ref_name == 'solutions'", "--mode solution")
+    issues.extend(
+        f"workflow: persisted-solution CI contract is not allowed: {item}"
+        for item in forbidden
+        if item in text
+    )
+    return issues
 
 
 def main() -> int:

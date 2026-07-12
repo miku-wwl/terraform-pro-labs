@@ -72,7 +72,8 @@ python tools/labctl.py status 05
 - Producer and consumer runtime roots contain only `default`, `dev`, and `prod` workspaces.
 - Each producer workspace contains exactly `terraform_data.network`.
 - Each consumer workspace contains the remote-state data source and `terraform_data.deployment`.
-- Dev consumes dev, prod consumes prod, neither initial plan destroys resources, and both final plans are no-op.
+- Dev consumes the complete dev network object and prod consumes the complete prod network object, including exact environment, VPC, and subnet values.
+- Neither initial consumer plan destroys resources, and both final plans are no-op.
 - A prod plan using `t3.micro` fails with `t3.micro is not allowed in the prod workspace.`
 
 ## Reset instructions

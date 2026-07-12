@@ -1,5 +1,88 @@
 # Terraform Professional Labs Migration Report
 
+## Post-Phase 13 - Independent audit remediation and starter-only storage
+
+Remediation date: 2026-07-12
+
+Working branch: `main`
+
+Scope: re-review all 32 labs after Phase 13, correct every concrete grader/documentation defect
+found by that review, preserve genuine learner starters, and remove the repository contract for a
+persisted `solutions` branch. No lab topic was replaced and no real cloud operation was authorized.
+
+### Audit outcome and remediation
+
+Twenty-six labs required stronger verification or documentation: 02, 04-10, 12-14, 16-18,
+20-25, and 27-32. Labs 01, 03, 11, 15, 19, and 26 were reviewed and required no permanent lab
+change. The permanent change set contains 74 files: 66 files across those 26 lab directories and
+eight repository CI/tooling/documentation files, including two new protected Lab 20 negative
+fixtures. The remediation strengthened four boundaries:
+
+- resource identity and dependency wiring now inspect actual resource keys, plan-configuration
+  references, provider maps, complete producer outputs, and owned input shapes rather than equal
+  output strings;
+- lifecycle, workspace, validation, sensitive-value, and naming labs now cover their missing safe,
+  boundary, failure, steady-state, replacement, and drift cases;
+- source and conceptual graders now reject comment/string decoys, bind required constructs to the
+  intended expressions or run responsibilities, and state what free-form semantics remain outside
+  deterministic local scoring;
+- optional S3 paths in Labs 04, 12, and 31 now document prerequisites, explicit opt-in commands,
+  expected cost, cleanup, and risks while remaining excluded from default validation.
+
+The storage model was also corrected at the repository owner's direction. Canonical answers are
+not stored on any branch. CI now runs only cross-platform starter gates; acceptance reconstructs
+canonical implementations in isolated temporary copies, runs them, resets them, and deletes them.
+Learners can validate their own completed starter with `labctl check <id> --mode solution`.
+
+### Gates and repeatability
+
+- Starter gate: **PASS, 32/32**. Every repository starter reaches its declared protected stage and
+  returns its declared marker; the aggregate command treats those expected failures as success.
+- Canonical gate: **PASS, 32/32, twice**. Canonical implementations existed only in temporary
+  copies. Each lab was reset between successful runs; no canonical file remains in the repository.
+- Reset: **PASS, 32/32**. Final status reports zero generated artifacts for every lab.
+- Repository checks: manifest/README/path/safety consistency, CSV parsing, Python syntax,
+  recursive Terraform formatting, expected-failure aggregation, and final diff checks passed.
+
+An initial PowerShell summary wrapper exited nonzero because `-notmatch` was applied to an output
+array even though every printed status already showed `Generated artifacts: 0`. A read-only Python
+recheck parsed all 32 status commands correctly and confirmed zero artifacts and no recorded gate
+results; this was a wrapper false negative, not a lab reset failure.
+
+The executed command families were:
+
+```text
+terraform fmt -check -recursive
+python tools/repo_check.py
+python tools/labctl.py list
+python tools/labctl.py check --all
+python tools/labctl.py check <id> --mode solution   # isolated temporary copies only
+python tools/labctl.py reset <id>
+python tools/labctl.py status <id>
+git diff --check
+git status --short
+git diff --stat
+git diff
+```
+
+`docs/lab-matrix.csv` records whether each lab was remediated or reviewed without change, the new
+starter/canonical verification results, and `transient-only` canonical answer storage.
+
+### NOT VERIFIED and remaining risks
+
+- Hosted GitHub Actions, Linux runtime behavior, and remote workflow parsing are **NOT VERIFIED**
+  locally; the workflow is statically checked and declares Ubuntu and Windows jobs.
+- Terraform versions other than v1.14.0 and provider versions other than the locally exercised AWS
+  v6.54.0, random v3.9.0, and local v2.9.0 are **NOT VERIFIED**.
+- Real AWS/HCP behavior, real S3 initialization, actual optional-path cost, account policy,
+  authorization, quotas, and eventual consistency are **NOT VERIFIED by design**.
+- Lab 25 can check choice validity and local lexical/structural rationale evidence, but nuanced
+  free-form semantic quality still requires human review.
+- Fresh provider initialization still needs registry access or a populated provider cache. No
+  credentials or billable resource creation are part of the default paths.
+
+No branch, commit, push, live-cloud apply, or real backend initialization was created or executed.
+
 ## Phase 13 - Final repository acceptance
 
 Acceptance date: 2026-07-11
@@ -15,8 +98,8 @@ expanded, no new lab was added, and Starter Standard v1 was not changed.
 - The root README still described only five pilots as executable. It now describes the complete
   32-lab starter collection, the repository checks, cloud-safety boundary, and upstream attribution.
 - No CI workflow existed. `.github/workflows/terraform-labs.yml` now runs repository consistency,
-  recursive formatting, and aggregate gates on both Ubuntu and Windows. The learner branch runs
-  starter expected-failure gates; a branch named `solutions` runs canonical solution gates.
+  recursive formatting, and aggregate starter gates on both Ubuntu and Windows. Canonical answers
+  are not stored on a branch; solution acceptance uses temporary copies only.
 - The repository had no single static release check for tracked-file ownership, README/manifest
   consistency, weak assertions, leakage, credential signatures, or CI shape. `tools/repo_check.py`
   now provides that portable check and uses the existing manifest loader as the schema authority.
@@ -123,8 +206,8 @@ was triggered from this local phase.
   provider cache, although no service credentials are needed.
 - Provider mocks validate schema and Terraform graph behavior, not account policy, authorization,
   quotas, eventual consistency, or service-side lifecycle behavior.
-- Canonical solutions remain intentionally absent from the learner branch. The `solutions` branch
-  must retain matching implementations for its CI gate.
+- Canonical solutions remain intentionally absent from the repository. Future acceptance must
+  reconstruct them in isolated temporary copies and delete those copies after verification.
 - The repository contains Apache License 2.0 and now attributes the named upstream project, but
   full provenance and whether any NOTICE obligations apply remain **NOT VERIFIED**.
 
@@ -241,7 +324,9 @@ The canonical solution for each pilot passed, was reset, and passed again. Canon
 
 - Only Labs 01 and 07 have manifests and the new directory contract. The other 30 labs remain legacy inputs for later explicitly scoped phases.
 - `lab.yaml` files use JSON syntax, which is valid YAML 1.2 and permits a dependency-free parser, but future schema expansion may justify adopting a YAML parser with an explicitly managed dependency.
-- The canonical solutions were intentionally tested transiently and are not stored on the starter branch. A later solution-branch phase must reconstruct or preserve them without leaking answers into learner-facing files.
+- The canonical solutions were intentionally tested transiently and are not stored in the repository.
+  The 2026-07-12 storage-model amendment makes this the permanent acceptance model: future work
+  must reconstruct them in an isolated copy and must not create a solution branch.
 
 ### Final required Phase 2 commands
 

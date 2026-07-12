@@ -31,7 +31,7 @@ None.
 
 ## Starting state
 
-The configuration is syntactically valid, but the three condition expressions are permissive placeholders. The public test file is complete and protected. It verifies one normal case and one case for each guard mechanism.
+The configuration is syntactically valid, but the three condition expressions are permissive placeholders. The public test file is complete and protected. It verifies normal behavior, all supported environment classes, a safe production case, the prefix boundary, and one failure for each guard mechanism.
 
 ## Files allowed to edit
 
@@ -78,10 +78,11 @@ python tools/labctl.py check 07
 ## Success criteria
 
 - The normal development input produces the exact deployment summary expected by the tests.
+- `stage` remains valid, and production with a safe instance type succeeds.
 - An unknown environment fails variable validation.
 - Production with `t3.micro` fails the deployment resource precondition.
-- A three-character prefix produces the expected non-blocking check diagnostic.
-- `terraform test` passes all four runs without cloud credentials.
+- A five-character prefix passes, while a four-character prefix produces the expected non-blocking check diagnostic.
+- `terraform test` passes all seven runs without cloud credentials.
 
 ## Reset instructions
 

@@ -18,7 +18,7 @@ A local database configuration correctly propagates a runtime password as sensit
 
 ## Execution mode
 
-Provider-free Terraform planning in a protected temporary directory.
+Provider-free Terraform planning and apply in a protected temporary directory using only the built-in provider.
 
 ## Cloud credentials required
 
@@ -71,7 +71,8 @@ python tools/labctl.py status 24
 ## Success criteria
 
 - `db_password` is a required sensitive variable.
-- Secret-bearing outputs retain sensitive metadata and render as redacted in CLI plans.
+- Secret-bearing outputs retain their exact runtime-derived values and sensitive metadata.
+- Normal CLI plan and apply rendering redact the runtime probe.
 - Root outputs contain no raw-password debug channel.
 - `credential_metadata` remains non-sensitive and contains only username and configured-status data.
 - No real secret is stored or printed by the default workflow.

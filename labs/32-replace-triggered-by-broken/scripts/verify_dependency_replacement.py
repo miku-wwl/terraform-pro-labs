@@ -69,22 +69,35 @@ def main() -> int:
     release_actions = release_service["change"]["actions"]
     release_reason = release_service.get("action_reason")
     name_actions = name_service["change"]["actions"]
+    release_before_input = release_service["change"].get("before", {}).get("input")
+    release_after_input = release_service["change"].get("after", {}).get("input")
+    name_before_input = name_service["change"].get("before", {}).get("input")
+    name_after_input = name_service["change"].get("after", {}).get("input")
+    service_ownership_ok = (
+        release_before_input == {"name": "checkout"}
+        and release_after_input == {"name": "checkout"}
+        and name_before_input == {"name": "checkout"}
+        and name_after_input == {"name": "orders"}
+    )
 
     correct = (
         marker_actions == ["update"]
         and release_actions in (["delete", "create"], ["create", "delete"])
         and release_reason == "replace_by_triggers"
         and name_actions == ["update"]
+        and service_ownership_ok
     )
     if correct:
         print(
             "Dependency replacement verification passed: upstream release change replaces the "
-            "service, while a direct name change remains an update."
+            "service without copying release data into its input, while a direct name change "
+            "remains an update."
         )
         return 0
     print(
         f"{MARKER}: marker={marker_actions!r}, release-service={release_actions!r}, "
-        f"reason={release_reason!r}, name-service={name_actions!r}."
+        f"reason={release_reason!r}, name-service={name_actions!r}, "
+        f"service-input-owned={service_ownership_ok!r}."
     )
     return 1
 

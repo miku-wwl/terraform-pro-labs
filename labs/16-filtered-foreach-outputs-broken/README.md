@@ -70,10 +70,10 @@ python tools/labctl.py status 16
 
 ## Success criteria
 
-- Default output keys are exactly `api` and `worker`.
+- Default resource and output keys are exactly `api` and `worker`; the disabled record is absent.
 - Exact ports remain associated with their logical names.
-- Reordering map declarations does not affect identity.
-- An all-disabled input produces empty maps.
+- Alternate logical names remain the exact resource identities regardless of declaration order.
+- An all-disabled input creates zero resources and produces empty maps.
 - An invalid port is rejected before planning resources.
 
 ## Reset instructions

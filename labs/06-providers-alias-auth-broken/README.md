@@ -71,8 +71,9 @@ python tools/labctl.py status 06
 ## Success criteria
 
 - The AWS provider requirement retains the `hashicorp/aws` source and `~> 6.0` constraint.
-- Mock outputs prove primary and secondary reads use different intended provider configurations.
-- No profile or credential value is pinned in Terraform configuration.
+- The default provider remains `us-east-1`; `aws.secondary` remains `us-west-2`.
+- Mock outputs and source checks prove primary and secondary reads use their intended provider configurations.
+- No profile, credential/config file, explicit credential value, assume-role block, or `skip_*` bypass is pinned in Terraform configuration.
 - No real AWS authentication or API request occurs.
 
 ## Reset instructions

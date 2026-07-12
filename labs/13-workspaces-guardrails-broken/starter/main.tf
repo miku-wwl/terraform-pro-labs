@@ -45,7 +45,7 @@ resource "terraform_data" "deployment" {
   lifecycle {
     precondition {
       condition     = var.instance_type != ""
-      error_message = "Production requires t3.large or larger and must not use auto-approve."
+      error_message = "Production requires an approved size and must not use auto-approve."
     }
   }
 }

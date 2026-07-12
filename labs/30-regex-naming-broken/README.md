@@ -71,10 +71,11 @@ python tools/labctl.py status 30
 
 ## Success criteria
 
-- Valid mixed-case and separator input normalizes to the exact expected name.
+- Valid mixed-case input with a consecutive mixed separator run normalizes to the exact expected name.
 - Both the 3-character and 24-character boundaries are accepted.
-- Leading digits, trailing separators, illegal characters, and values below or above the length range are rejected.
+- Leading digits or separators, trailing hyphens or underscores, illegal characters, and values below or above the length range are rejected.
 - Tokens and final environment-qualified names derive from normalized content.
+- Unsupported environments remain rejected.
 
 ## Reset instructions
 

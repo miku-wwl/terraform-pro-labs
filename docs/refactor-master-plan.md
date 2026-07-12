@@ -1,5 +1,10 @@
 # 任务：将 `lance0821/tfpro-labs` 整改为可盲刷、可重置、可自动评分的 Terraform Professional Starter 仓库
 
+> 2026-07-12 storage amendment: canonical answers must not be stored on any repository branch.
+> This supersedes the earlier solution/grader-branch design: acceptance reconstructs canonical
+> implementations in an isolated temporary copy. The starter/answer isolation and two-pass
+> solution-gate requirements remain unchanged.
+
 目标仓库：
 
 ```text
@@ -123,21 +128,15 @@ recommended_action
 建议采用以下结构：
 
 ```text
-upstream-snapshot
-solutions
 refactor/starter-v1
 main
 ```
 
 执行方式：
 
-1. 将原始 `main` 保存为不可修改的 `upstream-snapshot` 分支或 tag。
+1. 记录原始 `main` 的 commit ID 和来源；不要创建含答案的长期分支或 tag。
 
-2. 把当前可能包含答案的代码保存到：
-
-```text
-legacy-solution-candidate
-```
+2. 仅在仓库外的临时副本中审计当前可能包含答案的代码，验收后删除该副本。
 
 3. 在：
 
@@ -147,9 +146,10 @@ refactor/starter-v1
 
 完成整改。
 
-4. 最终的 starter 分支不得包含完整 solution。
+4. 最终仓库不得包含完整 solution。
 
-5. canonical solution、详细解析和强验收测试放在 `solutions` 分支。
+5. canonical solution 只在隔离临时副本中重建；强验收测试可保留为 protected
+   grader，但不得泄露完整实现。临时答案在双轮验收后删除。
 
 6. 不要在同一个学习目录下放置显眼的 `solution/`，否则无法盲刷。
 
@@ -200,13 +200,13 @@ labs/NN-topic/
     └── validate.ps1
 ```
 
-`solutions` 分支可以额外拥有：
+隔离验收副本可以临时把完成后的实现放回同一 `starter/` 路径，以便复用 manifest 和
+grader。该副本不得提交，验收完成后必须整体删除：
 
 ```text
 labs/NN-topic/
-├── solution/
-├── tests/grader.tftest.hcl
-└── SOLUTION.md
+├── starter/                 # transient canonical implementation
+└── tests/grader.tftest.hcl  # same protected behavior contract
 ```
 
 `lab.yaml` 至少包含：
@@ -449,7 +449,8 @@ can(output.value)
 
 公开测试不得直接泄露完整实现。
 
-可以将更强的 grader tests 放在 `solutions` 或独立 grader 分支。
+更强的 grader tests 应放在 manifest 声明的 protected 路径中，并避免暴露完整表达式；
+若测试本身无法安全公开，则在仓库外的隔离验收环境中运行且不持久化。
 
 不要断言由 provider 在 apply 时才确定、容易漂移的值。
 
@@ -576,11 +577,8 @@ rubric.yaml
 student-answer.md
 ```
 
-答案放在 solutions 分支：
-
-```text
-ANSWER_KEY.md
-```
+canonical 选择和完整理由只在隔离验收副本中生成，评分后删除；仓库不保存
+`ANSWER_KEY.md` 或答案分支。
 
 题目可以要求判断：
 
@@ -698,8 +696,9 @@ README/manifest consistency check
 local lab init/validate/test
 mock AWS lab tests
 starter expected-failure checks
-solution branch pass checks
 ```
+
+canonical pass checks 不依赖仓库分支；发布验收在隔离临时副本中执行两轮并在轮间 reset。
 
 真实 AWS 测试：
 

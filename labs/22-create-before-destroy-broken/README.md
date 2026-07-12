@@ -47,7 +47,8 @@ None.
 
 1. Preserve the existing replacement trigger and resource address.
 2. Configure overlapping replacement so a new service record is planned before the old one is deleted.
-3. Run the stateful verifier and inspect the plan action order.
+3. Preserve a no-op plan for unchanged inputs and an in-place update for a name-only change.
+4. Run the stateful verifier and inspect each plan action sequence.
 
 ## Constraints
 
@@ -71,6 +72,8 @@ python tools/labctl.py status 22
 
 - A release change remains a replacement.
 - Plan JSON actions for `terraform_data.service` are exactly `create, delete`.
+- Unchanged inputs produce a no-op, while changing only `service_name` remains an `update`.
+- The protected source contract keeps `triggers_replace` scoped exactly to `var.release`.
 - The check builds and removes isolated temporary state.
 - No cloud operation or credential lookup occurs.
 

@@ -72,6 +72,7 @@ python tools/labctl.py status 21
 
 - Default input renders exactly two matching ingress blocks.
 - Alternate input renders exactly three blocks with exact descriptions, ports, and CIDRs.
+- The fixed outbound boundary remains exactly one all-protocol egress rule to `0.0.0.0/0`.
 - Invalid ports are rejected.
 - The source uses a dynamic ingress construct and contains no static ingress duplication.
 - Validation performs no AWS authentication or API operation.

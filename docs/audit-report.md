@@ -5,6 +5,20 @@
 > Starter Standard v1. Current release status is recorded in `docs/lab-matrix.csv` and the Phase 13
 > section of `docs/migration-report.md`.
 
+> Post-Phase 13 correction (2026-07-12): a second independent, adversarial review found that the
+> Phase 13 `Test-quality scan: PASS` statement below was too broad. Although all starter and
+> canonical gates executed, several graders could still accept output equality without proving
+> resource identity or dependency wiring, omitted boundary/failure cases, or counted source tokens
+> that could be placed in comments. Optional S3 documentation also lacked complete operational
+> boundaries. Labs 02, 04-10, 12-14, 16-18, 20-25, and 27-32 were remediated; Labs 01, 03, 11,
+> 15, 19, and 26 were reviewed without permanent changes. All 32 starters and transient canonical
+> implementations were then reverified with reset. The detailed current evidence is the new top
+> section of `docs/migration-report.md`; per-lab status is in `docs/lab-matrix.csv`.
+
+> The same follow-up records a repository-owner storage decision: canonical answers are no longer
+> expected on a `solutions` branch. They are reconstructed only in temporary copies and deleted
+> after acceptance; the repository and CI retain learner starters only.
+
 ## Phase 13 final acceptance summary
 
 - Structure and manifest validation: **PASS, 32/32**. IDs are exactly 01-32; README titles,
@@ -23,7 +37,7 @@
   billable resources. No real AWS apply, lookup, backend connection, or API request was executed.
 - Repository and CI static acceptance: **PASS**. Repository formatting, `tools/repo_check.py`,
   `tools/labctl.py list`, and `python tools/labctl.py check --all` passed. The workflow defines
-  Windows and Linux starter gates and a solution-branch gate without a live-cloud job.
+  Windows and Linux starter gates without a live-cloud or persisted-solution job.
 
 The release still has explicit `NOT VERIFIED` boundaries: hosted GitHub Actions execution, Linux
 runtime behavior in this local phase, Terraform versions other than v1.14.0, provider versions

@@ -47,7 +47,7 @@ The lifecycle rule is syntactically valid but ignores every field, including Ter
 
 1. Narrow the lifecycle exception to only the externally-owned permission field.
 2. Preserve Terraform management of the JSON content derived from service name and release version.
-3. Verify the two controlled drift cases with the repository check.
+3. Verify the permission, content, and filename drift cases with the repository check.
 
 ## Constraints
 
@@ -57,7 +57,7 @@ The lifecycle rule is syntactically valid but ignores every field, including Ter
 
 ## Expected initial failure
 
-`python tools/labctl.py check 23` reports `EXPECTED_IGNORE_CHANGES_BOUNDARY_INCOMPLETE`: permission drift is tolerated, but managed content drift is incorrectly hidden too.
+`python tools/labctl.py check 23` reports `EXPECTED_IGNORE_CHANGES_BOUNDARY_INCOMPLETE`: permission drift is tolerated, but Terraform-owned content and filename drift are incorrectly hidden too.
 
 ## Validation commands
 
@@ -70,7 +70,8 @@ python tools/labctl.py status 23
 
 - External permission-only drift produces no resource action.
 - Terraform-owned content drift produces a reconciliation action.
-- The lifecycle exception does not suppress name or version management.
+- Terraform-owned filename drift produces a reconciliation action.
+- The lifecycle exception does not suppress filename, name, or version management.
 - Controlled state and plans exist only during the protected temporary check.
 
 ## Reset instructions
@@ -82,4 +83,4 @@ python tools/labctl.py reset 23
 ## Limited hints
 
 - Lifecycle ignore paths can target one provider schema attribute.
-- A correct shared-ownership policy should make the two drift cases behave differently.
+- A correct shared-ownership policy should distinguish one externally-owned field from both managed fields.

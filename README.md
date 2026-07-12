@@ -2,7 +2,7 @@
 
 This repository contains 32 deterministic, resettable Terraform Professional practice labs. Every
 lab is a learner-facing starter with a manifest, an expected-failure gate, protected verification,
-and a credential-free default workflow. Canonical answers are intentionally kept off this branch.
+and a credential-free default workflow. Canonical answers are not stored in this repository.
 
 From the repository root:
 
@@ -16,6 +16,10 @@ Use each lab README for the scenario, editable files, expected initial failure, 
 and reset workflow. The aggregate check treats each documented starter failure as a passing gate.
 Default validation requires no cloud credentials and creates no billable resources; AWS-focused
 labs use provider mocks or offline fixtures.
+
+After completing a lab, run `python tools/labctl.py check <lab-id> --mode solution` against your
+edited starter. This switches the expected result from the documented starter failure to a full
+pass without requiring a separate solutions branch.
 
 The source project is attributed to
 [`lance0821/tfpro-labs`](https://github.com/lance0821/tfpro-labs). The existing Apache License 2.0

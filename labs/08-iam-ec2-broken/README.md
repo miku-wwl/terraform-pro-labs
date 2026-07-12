@@ -72,9 +72,9 @@ python tools/labctl.py status 08
 
 ## Success criteria
 
-- The trust policy permits `ec2.amazonaws.com` to call `sts:AssumeRole`.
-- The managed policy has the exact S3 actions and two resource scopes.
-- Policy attachment, role, profile, and EC2 use direct Terraform references.
+- The exact one-statement `Allow` trust policy permits `ec2.amazonaws.com` to call `sts:AssumeRole`.
+- The exact one-statement `Allow` managed policy has the two required S3 actions and exact bucket/object ARN scopes.
+- Source inspection proves policy attachment, role, profile, and EC2 use direct Terraform references rather than repeated equal strings.
 - Alternate prefixes flow through every named object.
 - No AWS credentials, lookup, or API call is used.
 

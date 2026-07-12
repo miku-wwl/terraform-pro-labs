@@ -2,12 +2,12 @@ run "valid_name_is_normalized_and_tokenized" {
   command = plan
   module { source = "./starter" }
   variables {
-    project_name = "Payments_API"
+    project_name = "Payments__--API"
     environment  = "stage"
   }
   assert {
     condition     = output.normalized_name == "payments-api"
-    error_message = "Uppercase letters and underscore separators must normalize predictably."
+    error_message = "Mixed runs of underscore and hyphen separators must collapse predictably."
   }
   assert {
     condition = (
@@ -47,10 +47,31 @@ run "leading_digit_is_rejected" {
   expect_failures = [var.project_name]
 }
 
+run "leading_underscore_is_rejected" {
+  command = plan
+  module { source = "./starter" }
+  variables { project_name = "_project" }
+  expect_failures = [var.project_name]
+}
+
+run "leading_hyphen_is_rejected" {
+  command = plan
+  module { source = "./starter" }
+  variables { project_name = "-project" }
+  expect_failures = [var.project_name]
+}
+
 run "trailing_separator_is_rejected" {
   command = plan
   module { source = "./starter" }
   variables { project_name = "app-" }
+  expect_failures = [var.project_name]
+}
+
+run "trailing_underscore_is_rejected" {
+  command = plan
+  module { source = "./starter" }
+  variables { project_name = "app_" }
   expect_failures = [var.project_name]
 }
 
@@ -73,4 +94,11 @@ run "above_maximum_length_is_rejected" {
   module { source = "./starter" }
   variables { project_name = "A234567890123456789012345" }
   expect_failures = [var.project_name]
+}
+
+run "unsupported_environment_is_rejected" {
+  command = plan
+  module { source = "./starter" }
+  variables { environment = "production" }
+  expect_failures = [var.environment]
 }

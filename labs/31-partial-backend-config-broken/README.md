@@ -21,7 +21,7 @@ The starter currently places an environment-specific setting in the static backe
 
 ## Execution mode
 
-- Default mode: local format, `init -backend=false`, validate, and static checks
+- Default mode: local format, `init -backend=false`, validate, static checks, and a temporary backend-free ordinary-expression plan
 - Optional mode: explicitly authorized real S3 backend initialization
 
 ## Cloud credentials required
@@ -99,6 +99,13 @@ terraform -chdir=labs/31-partial-backend-config-broken/starter init -reconfigure
 
 The optional command is not part of `labctl check` and must not use an `.example` file unchanged.
 
+Optional-path safety boundary:
+
+- Prerequisites: a learner-owned S3 bucket, separately configured AWS authentication, and confirmation that the selected key is not shared with another stack.
+- Maximum expected cost for the documented init-only demonstration: less than USD 0.01 in ordinary use; it creates no infrastructure, but current S3 request pricing and account policy remain the learner's responsibility.
+- Cleanup: run `python tools/labctl.py reset 31` to remove local backend metadata. The documented init-only path has no managed resources to destroy. If you later write state to the bucket, inspect ownership and remove only your own state/lock objects through your normal S3 process; this lab never deletes remote objects automatically.
+- Known risks: a wrong bucket or key can select shared state, backend state can contain secrets, and interrupted or unauthorized initialization can leave local metadata that must be reset before changing environments.
+
 ## Success criteria
 
 - The static configuration contains exactly one S3 backend block.
@@ -107,6 +114,7 @@ The optional command is not part of `labctl check` and must not use an `.example
 - No Terraform expression is used inside the backend block.
 - All three example files are distinct, contain only placeholder backend values, and contain no credentials.
 - `var.environment` affects only ordinary configuration evaluation.
+- The default verifier strips the backend only in a temporary copy and proves dev, test, and prod each produce their matching deployment label without any provider configuration.
 - Format, offline initialization, Terraform validation, checker self-tests, and the actual static check all pass.
 
 ## Reset instructions

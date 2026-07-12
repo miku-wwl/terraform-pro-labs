@@ -2,36 +2,52 @@
   "runtime": {
     "path": "starter/versions.tf",
     "subject": "required_version",
+    "required_operators": [">=", "<"],
     "candidates": {
+      "1.0.0": false,
       "1.5.9": false,
+      "1.5.10": false,
+      "1.5.99": false,
       "1.6.0": true,
       "1.14.0": true,
-      "2.0.0": false
+      "1.15.8": true,
+      "1.999.999": true,
+      "2.0.0": false,
+      "2.0.1": false,
+      "2.1.0": false,
+      "3.0.0": false,
+      "99.0.0": false
     }
   },
   "bounded_provider": {
     "path": "starter/versions.tf",
     "subject": "aws",
+    "required_operators": ["~>", "!="],
     "candidates": {
       "5.99.0": false,
       "6.0.0": true,
       "6.2.0": false,
+      "6.2.1": true,
       "6.54.0": true,
+      "6.999.999": true,
       "7.0.0": false
     }
   },
   "minimum_provider": {
     "path": "starter/examples/minimum/versions.tf",
     "subject": "aws",
+    "required_operators": [">="],
     "candidates": {
       "5.99.0": false,
       "6.0.0": true,
-      "7.0.0": true
+      "7.0.0": true,
+      "99.0.0": true
     }
   },
   "exact_provider": {
     "path": "starter/examples/exact/versions.tf",
     "subject": "aws",
+    "required_operators": ["="],
     "candidates": {
       "6.53.0": false,
       "6.54.0": true,

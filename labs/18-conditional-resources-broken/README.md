@@ -73,7 +73,9 @@ python tools/labctl.py status 18
 - Disabled input plans successfully with a resource count of zero and both optional outputs set to `null`.
 - Enabled input plans one record and returns the exact configured name and owner.
 - An empty name is rejected.
-- The source uses both requested safe-read functions.
+- `selected_name` uses `one()` with the zero-or-one name splat, while `selected_owner` uses
+  `try()` around the potentially invalid owner index with a `null` fallback.
+- comments and quoted-string lookalikes do not satisfy the protected source contract.
 
 ## Reset instructions
 

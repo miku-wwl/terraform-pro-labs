@@ -26,7 +26,10 @@ None for the supported workflow.
 
 ## Cost risk
 
-None. No cloud provider or remote backend is contacted.
+None for the supported local workflow. The optional init-only S3 extension can make a handful of
+S3 API requests. Its expected incremental cost is below US$0.01 when stopped immediately after
+initialization and when no state is migrated or written; actual billing, account policy, and
+free-tier treatment remain the learner's responsibility and are not capped by this lab.
 
 ## Starting state
 
@@ -71,6 +74,62 @@ python tools/labctl.py check 12
 
 The optional real-backend extension would use a learner-owned copy of an `.example` file, but it is
 not part of validation and requires separate authorization.
+
+### Optional real S3 initialization (excluded from validation)
+
+Use this extension only with explicit authorization and all of the following prerequisites:
+
+- short-lived AWS credentials with access only to a learner-owned test bucket;
+- an existing encrypted/versioned test bucket in `us-east-1`;
+- a new, unused state keyâ€”never a production or shared state key;
+- no local state to migrate and no intent to run `plan`, `apply`, or any state-writing command.
+
+From the repository root, make untracked working copies, replace the bucket placeholder, and then
+run exactly one of the environment-specific init commands:
+
+```text
+# PowerShell
+Copy-Item labs/12-remote-state-backend-rules-broken/starter/backend.tf.example labs/12-remote-state-backend-rules-broken/starter/backend.tf
+Copy-Item labs/12-remote-state-backend-rules-broken/backend-dev.hcl.example labs/12-remote-state-backend-rules-broken/backend-dev.hcl
+# Edit backend-dev.hcl and replace only REPLACE_WITH_LAB12_CONSUMER_STATE_BUCKET.
+terraform -chdir=labs/12-remote-state-backend-rules-broken/starter init -reconfigure -backend-config=../backend-dev.hcl
+```
+
+Equivalent POSIX commands are:
+
+```text
+cp labs/12-remote-state-backend-rules-broken/starter/backend.tf.example labs/12-remote-state-backend-rules-broken/starter/backend.tf
+cp labs/12-remote-state-backend-rules-broken/backend-dev.hcl.example labs/12-remote-state-backend-rules-broken/backend-dev.hcl
+# Edit backend-dev.hcl and replace only REPLACE_WITH_LAB12_CONSUMER_STATE_BUCKET.
+terraform -chdir=labs/12-remote-state-backend-rules-broken/starter init -reconfigure -backend-config=../backend-dev.hcl
+```
+
+For prod, copy `backend-prod.hcl.example` to `backend-prod.hcl` and pass that file instead. Stop
+after successful initialization. The default lab never executes these commands.
+
+Cleanup for this documented init-only path removes the local working copies and backend metadata:
+
+```text
+# PowerShell, from the repository root
+Remove-Item labs/12-remote-state-backend-rules-broken/starter/backend.tf
+Remove-Item labs/12-remote-state-backend-rules-broken/backend-dev.hcl -ErrorAction SilentlyContinue
+Remove-Item labs/12-remote-state-backend-rules-broken/backend-prod.hcl -ErrorAction SilentlyContinue
+python tools/labctl.py reset 12
+```
+
+Equivalent POSIX cleanup is:
+
+```text
+rm -f labs/12-remote-state-backend-rules-broken/starter/backend.tf
+rm -f labs/12-remote-state-backend-rules-broken/backend-dev.hcl labs/12-remote-state-backend-rules-broken/backend-prod.hcl
+python tools/labctl.py reset 12
+```
+
+An init-only run should not create a remote state object. If any state-writing command was run,
+stop and use the bucket owner's version-aware cleanup procedure; deleting only a current S3 object
+or delete marker may leave prior versions. Principal risks are selecting an existing key, exposing
+state contents to an overly broad principal, retaining versioned objects, and incurring account-
+specific request/storage charges.
 
 ## Success criteria
 

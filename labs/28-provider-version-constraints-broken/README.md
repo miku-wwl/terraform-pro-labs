@@ -8,7 +8,7 @@ A team has overly broad Terraform and AWS provider requirements. Define three in
 
 - `required_version` and `required_providers`
 - Pessimistic `~>` bounds
-- Minimum `>=`, exact `=`, and exclusion `!=` semantics
+- Explicit runtime `>=`/`<` bounds, exact `=`, and exclusion `!=` semantics
 - Root versus reusable-module constraint intent
 - Candidate-version evaluation beyond `terraform validate`
 
@@ -51,7 +51,7 @@ The runtime and provider ranges are too broad, while the exact example pins the 
 2. Bound the root AWS provider to the 6.x line while excluding the known-bad 6.2.0 release.
 3. Make the reusable minimum example accept AWS provider 6.0.0 and later.
 4. Make the reproduction example accept exactly AWS provider 6.54.0.
-5. Use and understand all four target operators: `~>`, `>=`, `=`, and `!=`.
+5. Use and understand all five target operators: `~>`, `>=`, `<`, `=`, and `!=`.
 
 ## Constraints
 
@@ -73,11 +73,11 @@ python tools/labctl.py status 28
 
 ## Success criteria
 
-- Terraform 1.6 through 1.x is allowed, while 1.5.9 and 2.0.0 are rejected.
-- The bounded root strategy allows safe 6.x candidates, rejects 5.x/7.x, and excludes 6.2.0.
-- The minimum strategy allows 6.0.0 and later, including 7.0.0.
+- Terraform 1.6 through high future 1.x candidates is allowed, while early 1.x, adjacent pre-1.6 values, 2.0.x, and later majors are rejected.
+- The bounded root strategy allows current and high future safe 6.x candidates, rejects 5.x/7.x, and excludes only 6.2.0.
+- The minimum strategy allows 6.0.0 and much later majors.
 - The exact strategy allows only 6.54.0.
-- Initialization and validation pass, and semantic scoring covers all candidate versions.
+- Each strategy uses its intended operators, and semantic scoring covers all candidate versions.
 
 ## Reset instructions
 

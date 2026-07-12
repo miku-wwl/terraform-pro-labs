@@ -11,18 +11,27 @@ run "iam_documents_and_complete_attachment_chain_are_exact" {
 
   assert {
     condition = (
+      jsondecode(aws_iam_role.app.assume_role_policy).Version == "2012-10-17" &&
+      length(jsondecode(aws_iam_role.app.assume_role_policy).Statement) == 1 &&
+      jsondecode(aws_iam_role.app.assume_role_policy).Statement[0].Effect == "Allow" &&
       jsondecode(aws_iam_role.app.assume_role_policy).Statement[0].Action == "sts:AssumeRole" &&
       jsondecode(aws_iam_role.app.assume_role_policy).Statement[0].Principal.Service == "ec2.amazonaws.com"
     )
-    error_message = "The role trust policy must allow the EC2 service to assume the role."
+    error_message = "The exact one-statement trust policy must allow only the EC2 service to assume the role."
   }
 
   assert {
     condition = (
+      jsondecode(aws_iam_policy.app.policy).Version == "2012-10-17" &&
+      length(jsondecode(aws_iam_policy.app.policy).Statement) == 1 &&
+      jsondecode(aws_iam_policy.app.policy).Statement[0].Effect == "Allow" &&
       toset(jsondecode(aws_iam_policy.app.policy).Statement[0].Action) == toset(["s3:GetObject", "s3:ListBucket"]) &&
-      length(jsondecode(aws_iam_policy.app.policy).Statement[0].Resource) == 2
+      toset(jsondecode(aws_iam_policy.app.policy).Statement[0].Resource) == toset([
+        "arn:aws:s3:::example-app-data",
+        "arn:aws:s3:::example-app-data/*",
+      ])
     )
-    error_message = "The managed permissions policy must contain the exact S3 actions and both resource scopes."
+    error_message = "The managed permissions policy must contain the exact Allow statement, S3 actions, and bucket/object scopes."
   }
 
   assert {

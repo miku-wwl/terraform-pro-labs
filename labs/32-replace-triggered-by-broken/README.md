@@ -73,6 +73,7 @@ python tools/labctl.py status 32
 - Release-marker change actions are exactly an update.
 - The same plan replaces the service specifically with `replace_by_triggers` as its reason.
 - A service-name-only change remains an update, not a replacement.
+- The service input contains only its owned name; release data remains owned by the marker.
 - Verification uses temporary local state and no cloud operation.
 
 ## Reset instructions

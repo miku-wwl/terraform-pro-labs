@@ -14,7 +14,8 @@ LAB_DIR = Path(__file__).resolve().parents[1]
 RUNTIME = LAB_DIR / ".lab-state"
 WORK = RUNTIME / "learner"
 MARKER = "EXPECTED_WORKSPACE_GUARDRAIL_INCOMPLETE"
-GUARDRAIL = "Production requires t3.large or larger and must not use auto-approve."
+GUARDRAIL = "Production requires an approved size and must not use auto-approve."
+APPROVED_PROD_SIZES = ("t3.large", "t3.xlarge", "t3.2xlarge")
 EXPECTED = {
     "dev": {"replicas": 1, "tier": "sandbox", "instance_type": "t3.micro"},
     "staging": {"replicas": 2, "tier": "preproduction", "instance_type": "t3.small"},
@@ -105,14 +106,25 @@ def main() -> int:
             raise RuntimeError("runtime workspace set differs from the declared owned names")
 
         select(terraform, "prod")
-        unsafe_cases = (("t3.micro", "false"), ("t3.large", "true"))
+        for instance_type in APPROVED_PROD_SIZES:
+            approved = run(terraform, "plan", "-input=false", "-no-color", "-var",
+                           f"instance_type={instance_type}", "-var", "auto_approve=false")
+            if approved.returncode != 0:
+                return incomplete(f"prod must accept approved size {instance_type} when auto-approve is false")
+
+        unsafe_cases = (
+            ("t3.micro", "false"),
+            ("t3.small", "false"),
+            ("m5.large", "false"),
+            ("t3.large", "true"),
+        )
         for instance_type, auto_approve in unsafe_cases:
             blocked = run(terraform, "plan", "-input=false", "-no-color", "-var",
                           f"instance_type={instance_type}", "-var", f"auto_approve={auto_approve}")
             if blocked.returncode == 0 or GUARDRAIL not in blocked.stdout:
-                return incomplete("prod must reject undersized capacity and auto-approve with the documented diagnostic")
+                return incomplete("prod must reject undersized or unapproved capacity and auto-approve with the documented diagnostic")
         print("PASS: dev, staging, and prod used exact workspace settings and isolated state addresses.")
-        print("PASS: no destroy was planned, final plans were no-op, and both prod guardrails fired.")
+        print("PASS: prod accepted all three approved sizes and rejected undersized, unapproved, and auto-approve boundaries.")
         return 0
     except (OSError, RuntimeError, json.JSONDecodeError) as exc:
         print(f"Verification failed: {exc}")

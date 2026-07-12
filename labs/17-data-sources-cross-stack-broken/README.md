@@ -74,6 +74,8 @@ python tools/labctl.py status 17
 
 - The default fixture produces the exact normalized primary network contract.
 - A path input selects the secondary producer without code changes.
+- The editable source consumes `data.terraform_remote_state.network.outputs` and contains no copied
+  producer output values.
 - Subnet ordering and selection are deterministic.
 - Invalid lookup filenames fail variable validation.
 - No external account, default VPC, or network API is required.

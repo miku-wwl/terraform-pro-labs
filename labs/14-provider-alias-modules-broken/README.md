@@ -73,6 +73,8 @@ python tools/labctl.py status 14
 
 - The child retains `configuration_aliases = [aws.secondary]`.
 - The module call maps child `aws` to root `aws` and child `aws.secondary` to root `aws.secondary`.
+- The protected source contract verifies that exact map and that the editable root output still
+  delegates to the child instead of reproducing mock values.
 - Mock outputs prove the child used two distinct provider configurations.
 - No AWS credentials or API calls are used.
 

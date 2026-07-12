@@ -72,10 +72,12 @@ python tools/labctl.py status 09
 ## Success criteria
 
 - Default ingress resource keys are exactly `admin` and `web`.
-- Each rule retains its exact port, CIDR, and security-group reference.
-- The independent egress rule uses protocol `-1` and IPv4 CIDR `0.0.0.0/0`.
+- An alternate valid key becomes the exact resource instance key rather than being filtered or replaced by a default key.
+- Each rule retains its exact description, TCP protocol, port bounds, CIDR, and direct security-group reference.
+- The independent egress rule uses protocol `-1`, has no port bounds, and uses IPv4 CIDR `0.0.0.0/0`.
 - Empty ingress creates no ingress resources while preserving egress.
-- No inline rules, credentials, VPC lookup, or AWS API request are used.
+- Both lower and upper invalid port boundaries are rejected.
+- No static or dynamic inline rules, credentials, VPC lookup, or AWS API request are used.
 
 ## Reset instructions
 

@@ -57,6 +57,7 @@ The protected configuration is complete, but the editable test contains only one
 - Keep exactly four run scenarios in one test file.
 - Include at least two apply runs and one plan run.
 - Use a cross-run deployment ID reference rather than hardcoding generated IDs.
+- Keep the scenarios in setup, upgrade, steady-state, then invalid-input order so shared test state has an unambiguous lifecycle.
 - Do not modify the protected configuration or verifier.
 
 ## Expected initial failure

@@ -1,5 +1,5 @@
 #!/usr/bin/env python3
-"""Verify that only externally-owned owner drift is ignored."""
+"""Verify that only externally-owned permission drift is ignored."""
 
 from __future__ import annotations
 
@@ -67,26 +67,42 @@ def main() -> int:
                 print(applied.stdout.rstrip())
                 return applied.returncode
             base = json.loads((workdir / "base.tfstate").read_text(encoding="utf-8"))
+            base_resource = next(item for item in base["resources"] if item["name"] == "service")
+            base_permission = base_resource["instances"][0]["attributes"]["file_permission"]
+            drift_permission = "0600" if base_permission != "0600" else "0644"
             (workdir / "permission.tfstate").write_text(
-                json.dumps(drifted_state(base, "file_permission", "0600")), encoding="utf-8"
+                json.dumps(drifted_state(base, "file_permission", drift_permission)),
+                encoding="utf-8",
             )
             (workdir / "content.tfstate").write_text(
                 json.dumps(drifted_state(base, "content", '{"name":"drifted","version":"v1"}')),
                 encoding="utf-8"
             )
+            (workdir / "filename.tfstate").write_text(
+                json.dumps(
+                    drifted_state(base, "filename", str(workdir / "externally-moved.json"))
+                ),
+                encoding="utf-8",
+            )
             permission_actions = change_actions(terraform, workdir, "permission")
             content_actions = change_actions(terraform, workdir, "content")
+            filename_actions = change_actions(terraform, workdir, "filename")
     except (KeyError, StopIteration, ValueError, RuntimeError) as exc:
         print(f"Unexpected drift verification error: {exc}")
         return 2
 
     permission_ok = permission_actions in ([], ["no-op"])
-    managed_ok = content_actions not in ([], ["no-op"])
-    if permission_ok and managed_ok:
-        print("Drift verification passed: permission drift is ignored and managed content drift is repaired.")
+    content_ok = content_actions not in ([], ["no-op"])
+    filename_ok = filename_actions not in ([], ["no-op"])
+    if permission_ok and content_ok and filename_ok:
+        print(
+            "Drift verification passed: permission drift is ignored while managed content and "
+            "filename drift are repaired."
+        )
         return 0
     print(
-        f"{MARKER}: permission actions={permission_actions!r}; managed-content actions={content_actions!r}. "
+        f"{MARKER}: permission actions={permission_actions!r}; "
+        f"managed-content actions={content_actions!r}; filename actions={filename_actions!r}. "
         "Ignore only the externally-owned permission field."
     )
     return 1
