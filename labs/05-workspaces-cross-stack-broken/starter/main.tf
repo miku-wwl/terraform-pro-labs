@@ -1,6 +1,6 @@
 locals {
-  environment         = "dev"
-  producer_state_path = "${var.producer_state_root}/terraform.tfstate.d/dev/terraform.tfstate"
+  environment         = terraform.workspace
+  producer_state_path = "${var.producer_state_root}/terraform.tfstate.d/${terraform.workspace}/terraform.tfstate"
 }
 
 data "terraform_remote_state" "network" {
@@ -18,7 +18,12 @@ resource "terraform_data" "deployment" {
     instance_type = var.instance_type
   }
 
-  # TODO: Add the production safety boundary.
+  lifecycle {
+    precondition {
+      condition     = terraform.workspace != "prod" || var.instance_type != "t3.micro"
+      error_message = "t3.micro is not allowed in the prod workspace."
+    }
+  }
 }
 
 output "selected_environment" {
