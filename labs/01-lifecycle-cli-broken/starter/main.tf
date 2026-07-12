@@ -9,7 +9,10 @@ resource "terraform_data" "deployment_record" {
     name = var.record_name
   }
 
-  # TODO: Protect this managed object from accidental destruction.
+  # lifecycle {
+  #   prevent_destroy = true
+  # }
+
 }
 
 output "deployment_record" {

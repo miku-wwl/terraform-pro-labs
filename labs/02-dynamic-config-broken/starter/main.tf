@@ -1,17 +1,25 @@
 variable "catalog" {
   description = "Storage records in their current positional form."
-  type = list(object({
-    name           = string
+  type = map(object({
     versioning     = bool
     retention_days = optional(number)
     tags           = optional(map(string), {})
   }))
 
-  default = [
-    { name = "logs", versioning = true, retention_days = 30, tags = { purpose = "logs" } },
-    { name = "assets", versioning = false, tags = { purpose = "assets" } },
-    { name = "archive", versioning = true, retention_days = 90, tags = { purpose = "archive", managed_by = "records-team" } }
-  ]
+  default = {
+    logs    = { name = "logs", versioning = true, retention_days = 30, tags = { purpose = "logs" } },
+    assets  = { name = "assets", versioning = false, tags = { purpose = "assets" } },
+    archive = { name = "archive", versioning = true, retention_days = 90, tags = { purpose = "archive", managed_by = "records-team" } }
+  }
+
+  validation {
+    condition = alltrue([
+      for record in values(var.catalog) :
+      record.retention_days == null || record.retention_days >= 1
+    ])
+
+    error_message = "retention_days 提供时必须大于或等于 1。"
+  }
 }
 
 locals {
@@ -22,34 +30,44 @@ locals {
 }
 
 resource "terraform_data" "record" {
-  count = length(var.catalog)
+  for_each = var.catalog
 
   input = {
-    name = var.catalog[count.index].name
-    tags = merge(local.base_tags, var.catalog[count.index].tags)
+    name = each.key
+    tags = merge(local.base_tags, each.value.tags)
   }
 }
 
 resource "terraform_data" "versioning" {
-  count = length(var.catalog)
+  for_each = {
+    for key, value in var.catalog : key => value if value.versioning
+  }
 
-  input = var.catalog[count.index].versioning
+  input = each.value.versioning
 }
 
 resource "terraform_data" "retention" {
-  count = length(var.catalog)
+  for_each = {
+    for key, value in var.catalog : key => value if value.retention_days != null
+  }
 
-  input = try(var.catalog[count.index].retention_days, null)
+  input = each.value.retention_days
 }
 
 output "records" {
-  value = [for record in terraform_data.record : record.input]
+  value = {
+    for key, record in terraform_data.record : key => record.input
+  }
 }
 
 output "versioning" {
-  value = [for setting in terraform_data.versioning : setting.input]
+  value = {
+    for key, record in terraform_data.versioning : key => record.input
+  }
 }
 
 output "retention_days" {
-  value = [for setting in terraform_data.retention : setting.input]
+  value = {
+    for key, record in terraform_data.retention : key => record.input
+  }
 }
