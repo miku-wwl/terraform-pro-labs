@@ -2,10 +2,11 @@
 
 ## 任务
 
-1. 通过提供的本地状态路径读取 producer 的 `network` 输出。
-2. 将消费到的值传入应用契约并输出该值。
-3. 在可选 S3 backend 块中只保留共享的静态安全设置。
-4. 将 bucket、key 和 region 保留在初始化示例中。
+生产方的 state 中已经提供了 `network` 输出。
+
+在 `starter/consumer/main.tf` 中，使用给定的本地 state 路径读取这份网络信息，并将读取到的值传给应用记录，再通过现有输出返回。
+
+同时整理 `starter/backend.tf.example`：S3 backend 块只保留所有环境共用的静态安全设置；`bucket`、`key` 和 `region` 属于环境配置，应继续放在初始化示例文件中。
 
 
 

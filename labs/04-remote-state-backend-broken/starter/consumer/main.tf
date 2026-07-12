@@ -3,15 +3,17 @@ variable "producer_state_path" {
   type        = string
 }
 
-locals {
-  network = {
-    vpc_id            = "vpc-manually-copied"
-    subnet_ids        = ["subnet-manually-copied"]
-    security_group_id = "sg-manually-copied"
+data "terraform_remote_state" "network" {
+  backend = "local"
+
+  config = {
+    path = var.producer_state_path
   }
 }
 
-# TODO: Read the producer contract from its state instead of maintaining a copied value.
+locals {
+  network = data.terraform_remote_state.network.outputs.network
+}
 
 resource "terraform_data" "application_contract" {
   input = local.network
