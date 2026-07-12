@@ -13,23 +13,7 @@ variable "environment" {
   }
 }
 
-module "naming" {
-  source      = "./modules/naming"
-  application = var.application
-  environment = var.environment
-}
-
-module "identity" {
-  source      = "./modules/identity"
-  name_prefix = module.naming.name_prefix
-}
-
-module "compute" {
-  source = "./modules/compute"
-
-  name_prefix           = module.naming.name_prefix
-  instance_profile_name = module.naming.name_prefix
-}
+# TODO: Declare and connect the naming, identity, and compute modules.
 
 output "stack" {
   value = {

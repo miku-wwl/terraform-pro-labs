@@ -1,23 +1,19 @@
-# Lab 10：根模块与子模块组合
+# Lab 10：组合多个子模块
 
 ## 任务
 
-1. 将根模块的 application 和 environment 值传递给 naming 模块。
-2. 将 naming 的结果传递给 identity 模块。
-3. 将 naming 结果和 identity profile 结果一并传递给 compute。
-4. 从根模块公开 compute instance 引用和 identity profile 名称。
+根模块负责连接三个子模块：`naming`、`identity` 和 `compute`。
+
+将根模块的 `application`、`environment` 传给 `naming`。`naming` 生成的名称前缀需要传给 `identity`；`compute` 同时需要名称前缀和 `identity` 生成的 Instance Profile 名称。
+
+通过根模块的 `stack` 输出公开 compute 的实例引用和 Instance Profile 名称。
 
 
 
 ## 约束
 
-- 不要在根模块中重复子模块的命名公式。
-- 保留所有子模块接口，并使用引用建立依赖关系。
+- 根模块只负责传递输入、输出和依赖关系，不要重复子模块中的命名逻辑。
+- 保留所有子模块的变量和输出接口。
 - 不要添加 provider 或云资源。
-- 保持根输出的键和名称不变。
-
-
-
-## 可编辑文件
-
-- `starter/main.tf`
+- 保持 `stack` 输出的键和名称不变。
+- 只能编辑 `starter/main.tf`。
