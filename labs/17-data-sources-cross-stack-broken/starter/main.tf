@@ -9,19 +9,21 @@ variable "network_state_path" {
   }
 }
 
-locals {
-  network = {
-    vpc_id             = "vpc-manually-copied"
-    private_subnet_ids = ["subnet-manually-copied"]
-    owner              = "unknown"
+data "terraform_remote_state" "network" {
+  backend = "local"
+  config = {
+    path = coalesce(
+      var.network_state_path,
+      "${path.module}/../fixtures/network-primary.tfstate"
+    )
   }
 }
 
 output "network_lookup" {
   value = {
-    vpc_id             = local.network.vpc_id
-    private_subnet_ids = local.network.private_subnet_ids
-    selected_subnet_id = local.network.private_subnet_ids[0]
-    owner              = local.network.owner
+    vpc_id             = data.terraform_remote_state.network.outputs.vpc_id
+    private_subnet_ids = sort(data.terraform_remote_state.network.outputs.private_subnet_ids)
+    selected_subnet_id = sort(data.terraform_remote_state.network.outputs.private_subnet_ids)[0]
+    owner              = data.terraform_remote_state.network.outputs.owner
   }
 }
