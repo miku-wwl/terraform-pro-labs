@@ -1,20 +1,20 @@
-# Northstar HCP Terraform operating model
+# Northstar 的 HCP Terraform 运维模型
 
-Northstar is moving its shared infrastructure delivery into HCP Terraform.
+Northstar 正将共享基础设施交付迁移到 HCP Terraform。
 
-Two remote-execution workspaces are already planned:
+已规划两个远程执行 workspace：
 
-- `network-prod` owns production VPCs and publishes network outputs.
-- `application-prod` consumes those outputs and deploys production applications.
+- `network-prod`：负责生产 VPC，并发布网络输出。
+- `application-prod`：消费这些网络输出，并部署生产应用。
 
-Each workspace has configuration in a reviewed Git repository. Engineers open pull requests, and merges to the protected default branch are the normal change path. A release service also exists for exceptional, pre-approved promotion workflows where it must upload a previously assembled configuration version and create a run programmatically.
+每个 workspace 的配置都位于经过评审的 Git 仓库。工程师提交 Pull Request，合并到受保护的默认分支是常规变更路径。对于例外的、已预先批准的发布流程，现有一个发布服务：它需要上传预先构建的 configuration version，并通过 API 创建 run。
 
-Production constraints:
+生产环境约束：
 
-- A security rule forbidding publicly reachable databases is non-negotiable.
-- A cost increase should be visible to reviewers, but estimates may not cover every provider, resource, discount, or external charge.
-- Application developers may propose and inspect production changes, but a smaller release-management team owns production apply approval.
-- Development environments are low risk and may use more automation.
-- A production application run should be queued when a production network change has applied successfully.
+- 禁止公开可访问数据库的安全规则不可协商。
+- 成本增加应对评审者可见，但估算可能无法覆盖所有 provider、资源、折扣或外部费用。
+- 应用开发人员可以提出并查看生产变更；较小的发布管理团队负责生产 apply 审批。
+- 开发环境风险较低，可以使用更多自动化。
+- 生产网络变更成功 apply 后，应排队执行生产应用的 run。
 
-Your task is to choose an operating model that gives quick feedback without allowing review-only activity, dependency automation, or incomplete cost data to bypass production controls.
+你的任务是选择一种运维模型：既能快速反馈，又不能让仅供评审的活动、依赖自动化或不完整的成本数据绕过生产控制。

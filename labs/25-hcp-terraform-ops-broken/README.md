@@ -2,21 +2,13 @@
 
 ## 任务
 
-1. 将每个 `undecided` 值替换为对应问题中的一个且仅一个选项 ID。
-2. 在每个对应的决策标题下写出简明理由，说明选择依据及其运维影响。
-3. 保持所有决策 ID 和 Markdown 标题不变。
+阅读 `starter/SCENARIO.md` 与 `starter/QUESTIONS.md`，然后在 `starter/student-answer.md` 中为每个决策选择一个选项 ID，并写出简短理由。
 
-
+理由需要说明选择依据及其运维影响：生产审批边界、最小权限、依赖触发、强制策略和成本估算的局限。
 
 ## 约束
 
-- 每个问题必须作出一个决策；不要组合多个选项 ID。
-- 设计必须基于最小权限原则，并明确生产审批边界。
-- 将成本估算视为运维证据，而不是完整的账单保证。
-- 不要添加 Terraform、provider、令牌、组织或工作区凭据。
-
-
-
-## 可编辑文件
-
-- `starter/student-answer.md`
+- 每个决策只能选择一个选项 ID。
+- 不修改决策 ID、Markdown 标题或评分文件。
+- 不添加 Terraform、provider、令牌、组织或 workspace 凭据。
+- 只能编辑 `starter/student-answer.md`。
