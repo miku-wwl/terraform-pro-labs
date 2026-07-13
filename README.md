@@ -1,27 +1,39 @@
-# Terraform Professional Practice Labs
+# Terraform Professional 练习 Lab
 
-This repository contains 32 deterministic, resettable Terraform Professional practice labs. Every
-lab is a learner-facing starter with a manifest, an expected-failure gate, protected verification,
-and a credential-free default workflow. Canonical answers are not stored in this repository.
+这是一个面向 Terraform Professional 学习的本地练习仓库，共 32 个 Lab。每个 Lab 都从不完整的 starter 配置开始；你修改指定文件后，用本地校验脚本验收。
 
-From the repository root:
+默认练习不需要云凭据，也不会创建真实云资源。涉及 AWS 的题目使用 mock、fixture 或本地逻辑资源模拟。
 
-```text
+## 开始练习
+
+先查看 Lab 列表：
+
+```powershell
 python tools/labctl.py list
-python tools/repo_check.py
-python tools/labctl.py check --all
 ```
 
-Use each lab README for the scenario, editable files, expected initial failure, success criteria,
-and reset workflow. The aggregate check treats each documented starter failure as a passing gate.
-Default validation requires no cloud credentials and creates no billable resources; AWS-focused
-labs use provider mocks or offline fixtures.
+进入某个 Lab 的 README，按任务修改 `starter/` 中允许编辑的文件。完成后，在仓库根目录验收，例如：
 
-After completing a lab, run `python tools/labctl.py check <lab-id> --mode solution` against your
-edited starter. This switches the expected result from the documented starter failure to a full
-pass without requiring a separate solutions branch.
+```powershell
+python tools/labctl.py check 30 --mode solution
+```
 
-The source project is attributed to
-[`lance0821/tfpro-labs`](https://github.com/lance0821/tfpro-labs). The existing Apache License 2.0
-is preserved in `LICENSE`; provenance and any applicable NOTICE obligations should still be
-confirmed before redistribution.
+需要清理该 Lab 的本地缓存、state 和验收产物时：
+
+```powershell
+python tools/labctl.py reset 30
+```
+
+## 目录说明
+
+- `labs/`：32 个练习；每个 Lab 的 README 直接说明任务与约束。
+- `refinebook.md`：按 Lab 编号整理的超精炼知识点与最小示例。
+- `tools/labctl.py`：列出、验收和重置 Lab 的本地工具。
+
+## 约定
+
+- 只修改各 Lab README 中允许编辑的文件。
+- 不提交 `.terraform/`、state、`.tfvars`、本地锁定文件或凭据。
+- Lab 的 starter 初始状态可能故意无法通过“答案模式”验收；这是练习设计的一部分。
+
+原始项目参考 [`lance0821/tfpro-labs`](https://github.com/lance0821/tfpro-labs)，本仓库保留其 Apache License 2.0，详见 [LICENSE](LICENSE)。

@@ -748,3 +748,77 @@ run "invalid_release" {
   expect_failures = [var.release_version]
 }
 ```
+
+## 核心知识（Lab 30）
+
+- `can(regex(...))`：正则不匹配时返回 `false`，适合变量校验。
+- `^` / `$` 锚定完整字符串；首尾规则与 `length` 范围可组合验证。
+- `lower()` 统一大小写；`replace(text, "/正则/", value)` 按正则替换。
+- `"/[-_]+/"` 匹配一段连续分隔符，将其规范为单个 `-`。
+
+## 最小代码（Lab 30）
+
+```hcl
+validation {
+  condition = (
+    can(regex("^[A-Za-z][A-Za-z0-9_-]*[A-Za-z0-9]$", var.project_name)) &&
+    length(var.project_name) >= 3 && length(var.project_name) <= 24
+  )
+}
+
+locals {
+  normalized_name = replace(lower(var.project_name), "/[-_]+/", "-")
+  name_parts      = regexall("[a-z0-9]+", local.normalized_name)
+}
+```
+
+## 核心知识（Lab 31）
+
+- backend 在普通变量、`local`、资源之前初始化，不能引用它们或使用插值。
+- 部分 backend 配置：共用静态设置留在 `backend` 块；bucket、key、region 按环境放入 `.hcl` 文件。
+- 用 `terraform init -backend-config=backend-dev.hcl` 在初始化时合并环境参数。
+- ⚠ `use_lockfile = true` 需要 Terraform 1.10+；当前 TF Pro 1.6 的 S3 状态锁使用 `dynamodb_table`。
+
+## 最小代码（Lab 31）
+
+```hcl
+# main.tf：共用静态设置（TF Pro 1.6）
+terraform {
+  backend "s3" {
+    encrypt        = true
+    dynamodb_table = "terraform-locks"
+  }
+}
+```
+
+```hcl
+# backend-dev.hcl：初始化时传入
+bucket = "REPLACE_WITH_DEV_STATE_BUCKET"
+key    = "network/dev.tfstate"
+region = "us-east-1"
+```
+
+## 核心知识（Lab 32）
+
+- `replace_triggered_by`：监听另一个受管资源的变化；它变化时替换当前资源。
+- 上游资源可原地更新，下游资源仍可被触发替换。
+- `depends_on` 只控制执行顺序，不会触发替换。
+- 不复制上游值到下游 input；用生命周期依赖表达真正的替换关系。
+
+## 最小代码（Lab 32）
+
+```hcl
+resource "terraform_data" "release_marker" {
+  input = { version = var.release_version }
+}
+
+resource "terraform_data" "service" {
+  input = { name = var.service_name }
+
+  lifecycle {
+    replace_triggered_by = [
+      terraform_data.release_marker,
+    ]
+  }
+}
+```
