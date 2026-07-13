@@ -37,3 +37,5 @@ python tools/labctl.py reset 30
 - Lab 的 starter 初始状态可能故意无法通过“答案模式”验收；这是练习设计的一部分。
 
 原始项目参考 [`lance0821/tfpro-labs`](https://github.com/lance0821/tfpro-labs)，本仓库保留其 Apache License 2.0，详见 [LICENSE](LICENSE)。
+原仓像是 AI 批量生成的 Terraform Professional 题目目录：主题选得不错，但模板痕迹明显，题目约束宽泛，很多 Starter 接近半成品答案，缺乏可复现状态和严格验收。本仓则把这些概念草稿逐题改造成了可执行、可验证、可回溯的工程化 Lab，并完成了全部练习。
+
