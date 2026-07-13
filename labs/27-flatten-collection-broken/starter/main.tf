@@ -42,15 +42,16 @@ variable "team_apps" {
 }
 
 locals {
-  app_rows = [
-    for team, config in var.team_apps : {
-      key  = team
-      team = team
-      app  = config.apps[0].name
-      tags = merge(var.global_tags, config.apps[0].tags, config.tags)
-    }
-    if length(config.apps) > 0
-  ]
+  app_rows = flatten([
+    for team, config in var.team_apps : [
+      for app in config.apps : {
+        key  = "${team}.${app.name}"
+        team = team
+        app  = app.name
+        tags = merge(var.global_tags, config.tags, app.tags)
+      }
+    ]
+  ])
 
   app_map = { for row in local.app_rows : row.key => row }
 }
