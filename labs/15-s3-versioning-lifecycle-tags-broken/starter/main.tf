@@ -52,11 +52,14 @@ resource "aws_s3_bucket" "this" {
   for_each = var.buckets
 
   bucket = "${var.prefix}-${each.key}"
-  tags   = merge(each.value.tags, local.base_tags)
+  tags   = merge(local.base_tags, each.value.tags)
 }
 
 resource "aws_s3_bucket_versioning" "this" {
-  for_each = var.buckets
+  for_each = {
+    for name, config in var.buckets : name => config if config.versioning
+  }
+
 
   bucket = aws_s3_bucket.this[each.key].id
 
@@ -66,7 +69,10 @@ resource "aws_s3_bucket_versioning" "this" {
 }
 
 resource "aws_s3_bucket_lifecycle_configuration" "this" {
-  for_each = var.buckets
+  for_each = {
+    for name, config in var.buckets : name => config if config.lifecycle_days != null
+  }
+
 
   bucket = aws_s3_bucket.this[each.key].id
 
@@ -83,13 +89,19 @@ resource "aws_s3_bucket_lifecycle_configuration" "this" {
 }
 
 output "bucket_names" {
-  value = [for bucket in aws_s3_bucket.this : bucket.bucket]
+  value = { for name, bucket in aws_s3_bucket.this : name => bucket.bucket }
 }
 
 output "versioned_buckets" {
-  value = [for bucket in aws_s3_bucket_versioning.this : bucket.bucket]
+  value = {
+    for name in keys(aws_s3_bucket_versioning.this) :
+    name => aws_s3_bucket.this[name].bucket
+  }
 }
 
 output "lifecycle_buckets" {
-  value = [for bucket in aws_s3_bucket_lifecycle_configuration.this : bucket.bucket]
+  value = {
+    for name, lifecycle in aws_s3_bucket_lifecycle_configuration.this :
+    name => lifecycle.rule[0].expiration[0].days
+  }
 }
