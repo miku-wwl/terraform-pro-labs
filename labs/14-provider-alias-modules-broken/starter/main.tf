@@ -12,7 +12,7 @@ module "regions" {
 
   providers = {
     aws           = aws
-    aws.secondary = aws
+    aws.secondary = aws.secondary
   }
 }
 
