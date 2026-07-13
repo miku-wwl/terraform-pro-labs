@@ -4,25 +4,29 @@
 
 默认练习不需要云凭据，也不会创建真实云资源。涉及 AWS 的题目使用 mock、fixture 或本地逻辑资源模拟。
 
-## 开始练习
+## 使用方式
 
-先查看 Lab 列表：
+打开目标 Lab 的 README，直接让 AI 协作完成学习。例如：
 
-```powershell
-python tools/labctl.py list
+```text
+开始 Lab 30：先解释任务，再让我自己修改；完成后帮我验收。
 ```
 
-进入某个 Lab 的 README，按任务修改 `starter/` 中允许编辑的文件。完成后，在仓库根目录验收，例如：
+写完后只需告诉 AI：
 
-```powershell
-python tools/labctl.py check 30 --mode solution
+```text
+验收 Lab 30；通过后推送到 GitHub main。
 ```
 
-需要清理该 Lab 的本地缓存、state 和验收产物时：
+AI 会执行本地校验、解释失败原因、复验，并在通过后提交；你不需要手动运行验收指令。
 
-```powershell
-python tools/labctl.py reset 30
+每次推送的 Git 提交都是一个 checkpoint。想从某个节点开始全新的 Lab 时，告诉 AI 对应的提交 ID 与目标 Lab，例如：
+
+```text
+以 8bebc 为 checkpoint 创建新分支，从 Lab 31 开始练习。
 ```
+
+建议从 checkpoint 创建分支，而不是直接 checkout 到旧提交，以免进入 detached HEAD。或者每次练习完，抛弃掉更改，直接checkout到其他的Hash，进行练习。
 
 ## 目录说明
 
