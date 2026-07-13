@@ -349,6 +349,311 @@ resource "terraform_data" "deployment" {
 }
 ```
 
+## 核心知识（Lab 14）
+
+- `alias`：同一 provider 的另一套配置，例如另一 AWS 区域。
+- 子模块不配置 provider；由根模块在 `providers` map 中传入。
+- `configuration_aliases`：子模块声明它需要的别名 provider。
+- `aws = aws` 是默认配置映射；`aws.secondary = aws.secondary` 是别名映射。
+
+## 最小代码（Lab 14）
+
+```hcl
+provider "aws" {
+  region = "us-east-1"
+}
+
+provider "aws" {
+  alias  = "secondary"
+  region = "us-west-2"
+}
+
+module "regions" {
+  source = "./modules/region_report"
+  providers = {
+    aws           = aws
+    aws.secondary = aws.secondary
+  }
+}
+```
+
+## 核心知识（Lab 15）
+
+- bucket map 的 key 就是稳定的 `for_each` 资源地址。
+- 过滤后的 `for_each`：只为满足条件的条目创建独立资源。
+- `merge(base_tags, each.value.tags)`：bucket 专属标签覆盖公共标签。
+- 输出过滤资源时，用其 key 回查主资源，仍保留原始逻辑名称。
+
+## 最小代码（Lab 15）
+
+```hcl
+resource "aws_s3_bucket" "this" {
+  for_each = var.buckets
+  bucket   = "${var.prefix}-${each.key}"
+  tags     = merge(local.base_tags, each.value.tags)
+}
+
+resource "aws_s3_bucket_versioning" "this" {
+  for_each = {
+    for key, item in var.buckets : key => item
+    if item.versioning
+  }
+  bucket = aws_s3_bucket.this[each.key].id
+}
+
+resource "aws_s3_bucket_lifecycle_configuration" "this" {
+  for_each = {
+    for key, item in var.buckets : key => item
+    if item.lifecycle_days != null
+  }
+  bucket = aws_s3_bucket.this[each.key].id
+}
+```
+
+## 核心知识（Lab 16）
+
+- map 推导式加 `if`：筛出需要创建的资源；禁用项没有资源实例。
+- `for_each` 的 key 直接成为资源地址，例如 `deployment["api"]`。
+- 资源 map 本身可直接推导为输出；没有实例时自然得到 `{}`。
+- 用变量 `validation` 拒绝无效端口，而不是静默筛掉它。
+
+## 最小代码（Lab 16）
+
+```hcl
+resource "terraform_data" "deployment" {
+  for_each = {
+    for key, item in var.services : key => item
+    if item.enabled
+  }
+
+  input = {
+    name = each.key
+    port = each.value.port
+  }
+}
+
+output "deployment_ports" {
+  value = {
+    for key, item in terraform_data.deployment :
+    key => item.input.port
+  }
+}
+```
+
+## 核心知识（Lab 17）
+
+- `terraform_remote_state` 只能读取另一份 state 的根模块 `output`。
+- `coalesce(调用方路径, 默认路径)`：优先使用传入值，未提供时回退到 fixture。
+- `sort(...)` 后再取 `[0]`，避免集合原始顺序影响选中的子网。
+- 路径格式可用变量 `validation` 提前拒绝无效输入。
+
+## 最小代码（Lab 17）
+
+```hcl
+data "terraform_remote_state" "network" {
+  backend = "local"
+  config = {
+    path = coalesce(var.network_state_path, "${path.module}/../fixtures/network-primary.tfstate")
+  }
+}
+
+locals {
+  subnet_ids = sort(data.terraform_remote_state.network.outputs.private_subnet_ids)
+}
+
+output "selected_subnet_id" {
+  value = local.subnet_ids[0]
+}
+```
+
+## 核心知识（Lab 18）
+
+- `count = 条件 ? 1 : 0`：条件创建零个或一个资源；资源引用变为列表。
+- `one(零或一项列表)`：零项返回 `null`，一项返回该值。
+- `try(可能报错的表达式, null)`：安全读取可能不存在的 `[0]`。
+- 可选资源不存在时，输出 `null`，不使用哨兵字符串。
+
+## 最小代码（Lab 18）
+
+```hcl
+resource "terraform_data" "marker" {
+  count = var.create_marker ? 1 : 0
+  input = { name = var.marker_name, owner = var.owner }
+}
+
+output "selected_name" {
+  value = one(terraform_data.marker[*].input.name)
+}
+
+output "selected_owner" {
+  value = try(terraform_data.marker[0].input.owner, null)
+}
+```
+
+## 核心知识（Lab 19）
+
+- `count` 实例地址用数字索引，如 `resource.x[0]`；`for_each` 用业务 key，如 `resource.x["logs"]`。
+- 地址从索引改为 key 时，资源配置相同也需要 `moved` 块迁移 state。
+- `moved` 只改 state 地址，不创建、销毁或替换真实资源。
+- 每个旧实例必须对应一个新地址；迁移后 `plan` 应为 no-op。
+
+## 最小代码（Lab 19）
+
+```hcl
+moved {
+  from = terraform_data.bucket[0]
+  to   = terraform_data.bucket["logs"]
+}
+
+resource "terraform_data" "bucket" {
+  for_each = local.records
+  input    = each.value
+}
+```
+
+## 核心知识（Lab 20）
+
+- `jsondecode(file(...))` / `csvdecode(file(...))`：读取并解析本地 JSON、CSV。
+- map 推导式用业务字段做 key；筛选后直接用于 `for_each`。
+- `row.value == "" ? null : tonumber(row.value)`：空字符串转 `null`，`"0"` 保留为数字 `0`。
+- `path.module`：当前模块目录，适合拼接相对 fixture 路径。
+
+## 最小代码（Lab 20）
+
+```hcl
+locals {
+  apps = jsondecode(file("${path.module}/../fixtures/apps.json"))
+
+  enabled_apps = {
+    for app in local.apps : app.name => app
+    if app.enabled
+  }
+
+  bucket_settings = {
+    for row in csvdecode(file("${path.module}/../fixtures/buckets.csv")) :
+    row.name => {
+      lifecycle_days = row.lifecycle_days == "" ? null : tonumber(row.lifecycle_days)
+    }
+  }
+}
+```
+
+## 核心知识（Lab 21）
+
+- `dynamic "块名"`：在资源内部按集合动态生成嵌套 block。
+- `content {}`：定义每个动态 block 的内容。
+- 默认迭代器名与块名相同：`ingress.value`；可用 `iterator` 自定义。
+- `dynamic` 生成嵌套配置，不是创建多个独立资源。
+
+## 最小代码（Lab 21）
+
+```hcl
+resource "aws_security_group" "web" {
+  dynamic "ingress" {
+    for_each = var.ingress_rules
+
+    content {
+      description = ingress.value.description
+      from_port   = ingress.value.port
+      to_port     = ingress.value.port
+      protocol    = "tcp"
+      cidr_blocks = [ingress.value.cidr_block]
+    }
+  }
+}
+```
+
+## 核心知识（Lab 22）
+
+- `triggers_replace`：监听值变化，变化时强制替换资源。
+- 同一资源只能写一个 `triggers_replace`；可传单值、列表或 map，任一成员变化都会触发替换。
+- `create_before_destroy = true`：替换时先创建新实例，再销毁旧实例。
+- 只把不可原地更新的值放入 `triggers_replace`；其他值仍可原地更新。
+
+## 最小代码（Lab 22）
+
+```hcl
+resource "terraform_data" "service" {
+  input = {
+    name    = var.service_name
+    release = var.release
+  }
+
+  triggers_replace = var.release
+
+  lifecycle {
+    create_before_destroy = true
+  }
+}
+```
+
+## 核心知识（Lab 23）
+
+- drift：真实对象被 Terraform 外部改动，导致 state/配置与现实不一致。
+- `ignore_changes = [字段]`：忽略该字段的 drift；其余字段仍由 Terraform 检测和管理。
+- 不用 `ignore_changes = all`，也不要忽略整个资源或 Terraform 自己负责的字段。
+- 忽略的是“该字段的差异”，不是停止管理或删除配置中的该字段。
+
+## 最小代码（Lab 23）
+
+```hcl
+resource "local_file" "service" {
+  filename        = "${path.module}/service.json"
+  content         = jsonencode({ name = var.service_name, version = var.release_version })
+  file_permission = var.external_permission
+
+  lifecycle {
+    ignore_changes = [file_permission]
+  }
+}
+```
+
+## 核心知识（Lab 24）
+
+- `sensitive = true`：隐藏变量或输出在 CLI 中的显示，不会加密 state。
+- 敏感输入参与表达式后，结果会继承敏感性；含密码的 URI、对象输出也应标为敏感。
+- 非敏感元数据可以单独输出，例如用户名、是否已配置密码。
+- `nonsensitive()` 只能用于确认不会泄露秘密的派生结果；不要用它输出密码。
+
+## 最小代码（Lab 24）
+
+```hcl
+variable "db_password" {
+  type      = string
+  sensitive = true
+  nullable  = false
+}
+
+output "connection_uri" {
+  value     = local.connection_uri
+  sensitive = true
+}
+
+output "credential_metadata" {
+  value = {
+    username            = var.db_username
+    password_configured = nonsensitive(length(var.db_password) > 0)
+  }
+}
+```
+
+## 核心知识（Lab 25）
+
+- 常规工作流用 VCS；API run 只给可审计的例外发布自动化。
+- Pull Request 用 speculative plan：提供反馈，但绝不 apply。
+- Run Trigger：上游 workspace 成功 apply 后触发下游 workspace。
+- 生产安全策略用强制执行；成本估算是评审信号，不是准确账单或自动审批依据。
+- 最小权限分离 plan、apply 与 workspace 管理；生产 apply 保持人工审批。
+
+## 最小代码（Lab 25）
+
+```text
+常规变更：VCS → speculative plan → 评审 → 手工生产 apply
+依赖顺序：network-prod 成功 apply → 触发 application-prod
+权限边界：开发者 plan；发布团队 apply；workspace 管理权单独授予
+```
+
+
 ## 核心知识（Lab 26，了解即可）
 
 - ⚠ `removed` 块需要 Terraform 1.7+，不属于当前 TF Pro 1.6 范围。
