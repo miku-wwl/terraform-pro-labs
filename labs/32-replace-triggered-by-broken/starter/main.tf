@@ -20,6 +20,10 @@ resource "terraform_data" "service" {
   input = {
     name = var.service_name
   }
+
+  lifecycle {
+    replace_triggered_by = [terraform_data.release_marker]
+  }
 }
 
 output "service_state" {
