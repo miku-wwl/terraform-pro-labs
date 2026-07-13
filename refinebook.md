@@ -57,6 +57,7 @@ output "records" {
 - `import`：将已有资源 ID 登记到 Terraform state 地址，不创建资源。
 - `moved`：将 state 中的旧地址迁移到新地址，不重建资源。
 - `import` 是“外部 ID → Terraform 地址”；`moved` 是“旧地址 → 新地址”。
+- ⚠ `import` 块中的 `for_each` 需要 Terraform 1.7+；当前 TF Pro 1.6 只需掌握普通单资源 `import`。
 
 ## 最小代码（Lab 3）
 
@@ -78,6 +79,7 @@ moved {
 - `terraform_remote_state`：读取另一份 state 的根模块输出。
 - `backend` 决定当前配置的 state 存放位置；不能引用变量或表达式。
 - S3 backend：共享安全设置写在 `.tf` 中，`bucket`、`key`、`region` 在初始化时提供。
+- ⚠ `use_lockfile = true` 需要 Terraform 1.10+；当前 TF Pro 1.6 的 S3 状态锁使用 `dynamodb_table`。
 
 ## 最小代码（Lab 4）
 
@@ -295,6 +297,7 @@ moved {
 - 当前配置的 backend 与读取的 remote state 是两件事。
 - S3 backend 的 `bucket`、`key`、`region` 在初始化时按环境提供。
 - 输出引用：同模块用原始值；父模块读子模块用 `module.child.output_name`；跨 state 用 `terraform_remote_state.x.outputs.output_name`；命令行用 `terraform output output_name`。
+- ⚠ `use_lockfile = true` 需要 Terraform 1.10+；当前 TF Pro 1.6 的 S3 状态锁使用 `dynamodb_table`。
 
 ## 最小代码（Lab 12）
 
@@ -342,6 +345,22 @@ resource "terraform_data" "deployment" {
       )
       error_message = "Production requires an approved size and must not use auto-approve."
     }
+  }
+}
+```
+
+## 核心知识（Lab 26，了解即可）
+
+- ⚠ `removed` 块需要 Terraform 1.7+，不属于当前 TF Pro 1.6 范围。
+- `destroy = false`：只从 state 忘记资源，保留真实对象。
+
+## 最小代码（Lab 26，Terraform 1.7+）
+
+```hcl
+removed {
+  from = aws_instance.legacy
+  lifecycle {
+    destroy = false
   }
 }
 ```
