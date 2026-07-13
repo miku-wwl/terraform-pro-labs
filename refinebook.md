@@ -669,3 +669,82 @@ removed {
   }
 }
 ```
+
+## 核心知识（Lab 27）
+
+- 双层 `for` 先生成“团队 × 应用”的嵌套列表；`flatten` 将其压成每应用一行。
+- 组合 key `${team}.${app.name}` 同时保留团队与应用身份，避免跨团队同名冲突。
+- `merge(global, team, app)`：越靠后的标签优先级越高。
+- 空应用列表自然生成空行；同团队重复名用 `distinct` + `validation` 拒绝。
+
+## 最小代码（Lab 27）
+
+```hcl
+locals {
+  app_rows = flatten([
+    for team, config in var.team_apps : [
+      for app in config.apps : {
+        key  = "${team}.${app.name}"
+        team = team
+        app  = app.name
+        tags = merge(var.global_tags, config.tags, app.tags)
+      }
+    ]
+  ])
+
+  app_map = { for row in local.app_rows : row.key => row }
+}
+```
+
+## 核心知识（Lab 28）
+
+- 多个版本条件用逗号分隔，不能用 `&&`。
+- `>= 1.6, < 2.0`：限定 1.x 范围；`~> 6.0`：限定 6.x 范围。
+- `!= 6.2.0`：在允许范围内排除单个问题版本。
+- `= 6.54.0`：只允许精确版本；`>= 6.0.0`：只设最低版本。
+
+## 最小代码（Lab 28）
+
+```hcl
+terraform {
+  required_version = ">= 1.6, < 2.0"
+
+  required_providers {
+    aws = {
+      source  = "hashicorp/aws"
+      version = "~> 6.0, != 6.2.0"
+    }
+  }
+}
+```
+
+## 核心知识（Lab 29）
+
+- `.tftest.hcl` 中每个 `run` 是一个测试场景；`apply` 会建立/更新测试 state，后续 run 可继续使用。
+- `plan` 不改 state，适合验证升级后的稳定状态或无变更。
+- `run.场景名.输出名`：引用前一个 run 的根模块 output，比较真实生成的 ID。
+- `expect_failures = [var.x]`：预期变量校验失败；失败归因正确时该 run 通过。
+
+## 最小代码（Lab 29）
+
+```hcl
+run "deploy_v1" {
+  command = apply
+  variables { release_version = "v1" }
+}
+
+run "upgrade_v2" {
+  command = apply
+  variables { release_version = "v2" }
+  assert {
+    condition     = output.deployment_id != run.deploy_v1.deployment_id
+    error_message = "版本变化应替换资源。"
+  }
+}
+
+run "invalid_release" {
+  command = plan
+  variables { release_version = "latest" }
+  expect_failures = [var.release_version]
+}
+```

@@ -4,7 +4,7 @@ variable "project_name" {
   default     = "Payments_API"
 
   validation {
-    condition     = can(regex("^[A-Za-z0-9_-]+$", var.project_name))
+    condition     = can(regex("^[A-Za-z][A-Za-z0-9_-]*[A-Za-z0-9]$", var.project_name)) && length(var.project_name) >= 3 && length(var.project_name) <= 24
     error_message = "project_name does not satisfy the naming policy."
   }
 }
@@ -21,9 +21,13 @@ variable "environment" {
 }
 
 locals {
-  normalized_name = lower(var.project_name)
-  name_parts      = regexall("[a-z0-9]+", local.normalized_name)
-  final_name      = "${local.normalized_name}-${var.environment}"
+  normalized_name = replace(
+    lower(var.project_name),
+    "/[-_]+/",
+    "-"
+  )
+  name_parts = regexall("[a-z0-9]+", local.normalized_name)
+  final_name = "${local.normalized_name}-${var.environment}"
 }
 
 output "normalized_name" {
