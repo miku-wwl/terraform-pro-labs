@@ -1,23 +1,19 @@
-# Lab 14：将带 alias 的 provider 传入子模块
+# Lab 14：将 Provider 别名传入子模块
 
 ## 任务
 
-1. 检查子模块声明的 provider alias 及其 provider 用法。
-2. 修正根模块调用，使每个子模块 provider 名称都收到与之匹配的根模块配置。
-3. 将 provider 配置保留在根模块中，不要向子模块添加 provider block。
-4. 使用两个可区分的 mock provider 结果验证映射。
+根模块配置了默认 AWS provider 和 `aws.secondary` 别名。子模块同时需要这两套 provider 配置来读取两个区域。
+
+在根模块调用子模块时，通过 `providers` map 将默认 provider 和 `aws.secondary` 分别传给子模块中同名的 provider 配置。
+
+Provider 配置应继续保留在根模块中，不要在子模块中新增 provider block。
 
 
 
 ## 约束
 
-- 不要修改受保护的子模块。
-- 不要删除 `configuration_aliases` 或 secondary data source 的 provider 选择。
-- 不要通过复制子模块来规避 provider 映射。
-- 不要使用凭据或真实 AWS data lookup。
-
-
-
-## 可编辑文件
-
-- `starter/main.tf`
+- 不要修改子模块。
+- 不要删除 `configuration_aliases` 或子模块中 `aws.secondary` 的选择。
+- 不要复制子模块来绕过 provider 映射。
+- 不要添加凭据，也不要执行真实 AWS 查询。
+- 只能编辑 `starter/main.tf`。

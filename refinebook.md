@@ -207,3 +207,141 @@ resource "aws_instance" "app" {
   iam_instance_profile = aws_iam_instance_profile.app.name
 }
 ```
+
+## 核心知识（Lab 9）
+
+- Security Group 本体与规则分开管理，不使用内联 `ingress` / `egress`。
+- `for_each = var.ingress_rules`：map 的键就是稳定的规则地址。
+- `ip_protocol = "-1"`：允许所有协议；不设置端口。
+
+## 最小代码（Lab 9）
+
+```hcl
+resource "aws_vpc_security_group_ingress_rule" "web" {
+  for_each = var.ingress_rules
+
+  security_group_id = aws_security_group.web.id
+  ip_protocol       = "tcp"
+  from_port         = each.value.port
+  to_port           = each.value.port
+  cidr_ipv4         = each.value.cidr_ipv4
+}
+
+resource "aws_vpc_security_group_egress_rule" "all_ipv4" {
+  security_group_id = aws_security_group.web.id
+  ip_protocol       = "-1"
+  cidr_ipv4         = "0.0.0.0/0"
+}
+```
+
+## 核心知识（Lab 10）
+
+- 根模块通过 `module` 块调用子模块，并传入子模块声明的变量。
+- 读取子模块输出：`module.<模块名>.<输出名>`。
+- 根模块只负责编排模块，不重复子模块内部逻辑。
+
+## 最小代码（Lab 10）
+
+```hcl
+module "naming" {
+  source      = "./modules/naming"
+  application = var.application
+  environment = var.environment
+}
+
+module "identity" {
+  source      = "./modules/identity"
+  name_prefix = module.naming.name_prefix
+}
+
+module "compute" {
+  source                = "./modules/compute"
+  name_prefix           = module.naming.name_prefix
+  instance_profile_name = module.identity.instance_profile_name
+}
+
+output "stack" {
+  value = {
+    instance_profile_name = module.identity.instance_profile_name
+    instance_reference    = module.compute.instance_reference
+  }
+}
+```
+
+## 核心知识（Lab 11）
+
+- `import`：使用 provider ID 将已有资源纳入指定 state 地址。
+- `moved`：不使用 ID，只将已有 state 从旧地址迁移到新地址。
+- 重构顺序：先导入，再迁移；最终计划应为 no-op。
+
+## 最小代码（Lab 11）
+
+```hcl
+import {
+  to = random_id.legacy_record
+  id = var.import_id
+}
+
+moved {
+  from = random_id.legacy_record
+  to   = module.record.random_id.this
+}
+```
+
+## 核心知识（Lab 12）
+
+- 读取另一份 state 的输出：`data.terraform_remote_state.<名称>.outputs.<输出名>`。
+- 消费者直接使用生产方 output，不复制网络值。
+- 当前配置的 backend 与读取的 remote state 是两件事。
+- S3 backend 的 `bucket`、`key`、`region` 在初始化时按环境提供。
+- 输出引用：同模块用原始值；父模块读子模块用 `module.child.output_name`；跨 state 用 `terraform_remote_state.x.outputs.output_name`；命令行用 `terraform output output_name`。
+
+## 最小代码（Lab 12）
+
+```hcl
+data "terraform_remote_state" "producer" {
+  backend = "local"
+  config  = { path = var.producer_state_path }
+}
+
+resource "terraform_data" "consumer" {
+  input = {
+    network = data.terraform_remote_state.producer.outputs.network
+  }
+}
+
+terraform {
+  backend "s3" {
+    encrypt      = true
+    use_lockfile = true
+  }
+}
+```
+
+
+## 核心知识（Lab 13）
+
+- `terraform.workspace` 可作为环境键，从设置 map 中选择对应配置。
+- `precondition` 用于阻止不安全的资源配置组合。
+- 生产环境允许规格与审批开关应同时满足。
+
+## 最小代码（Lab 13）
+
+```hcl
+locals {
+  environment = terraform.workspace
+  selected    = local.settings[local.environment]
+}
+
+resource "terraform_data" "deployment" {
+  lifecycle {
+    precondition {
+      condition = local.environment != "prod" || (
+        contains(["t3.large", "t3.xlarge", "t3.2xlarge"], var.instance_type) &&
+        var.auto_approve == false
+      )
+      error_message = "Production requires an approved size and must not use auto-approve."
+    }
+  }
+}
+```
