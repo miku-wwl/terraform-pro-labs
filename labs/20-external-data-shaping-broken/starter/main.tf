@@ -24,12 +24,21 @@ locals {
   apps_raw    = jsondecode(file("${path.module}/../fixtures/${var.apps_fixture}"))
   buckets_raw = csvdecode(file("${path.module}/../fixtures/${var.buckets_fixture}"))
 
-  enabled_apps = [for app in local.apps_raw : app if app.enabled]
-  bucket_rows  = [for row in local.buckets_raw : row]
+  enabled_apps = {
+    for app in local.apps_raw : app.name => app
+    if app.enabled
+  }
+
+  bucket_settings = {
+    for row in local.buckets_raw : row.name => {
+      lifecycle_days = row.lifecycle_days == "" ? null : tonumber(row.lifecycle_days)
+      owner          = row.owner
+    }
+  }
 }
 
 resource "terraform_data" "app" {
-  for_each = { for index, app in local.enabled_apps : tostring(index) => app }
+  for_each = local.enabled_apps
 
   input = {
     name       = each.value.name
@@ -39,9 +48,11 @@ resource "terraform_data" "app" {
 }
 
 output "enabled_apps" {
-  value = [for app in terraform_data.app : app.input]
+  value = {
+    for name, app in terraform_data.app : name => app.input
+  }
 }
 
 output "bucket_settings" {
-  value = local.bucket_rows
+  value = local.bucket_settings
 }
