@@ -190,6 +190,7 @@ check "name_quality" {
 
 - EC2 权限链：`EC2 → Instance Profile → IAM Role → IAM Policy`。
 - Role 的信任策略决定“谁能扮演”；Policy 决定“能做什么”。
+- EC2 信任策略：`Principal = { Service = "ec2.amazonaws.com" }`；Policy Attachment 用 Role 的资源引用绑定 Policy。
 - 用资源引用连接 Role、Policy 与 Profile，避免硬编码名称。
 - IAM Policy 应遵循最小权限原则。
 
@@ -213,6 +214,7 @@ resource "aws_instance" "app" {
 ## 核心知识（Lab 9）
 
 - Security Group 本体与规则分开管理，不使用内联 `ingress` / `egress`。
+- VPC 基础顺序：`VPC → Subnet → IGW/NAT → Route Table → Security Group → 业务资源`；本 Lab 聚焦 Security Group。
 - `for_each = var.ingress_rules`：map 的键就是稳定的规则地址。
 - `ip_protocol = "-1"`：允许所有协议；不设置端口。
 
