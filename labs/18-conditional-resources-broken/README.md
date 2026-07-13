@@ -1,23 +1,16 @@
-# Lab 18：使用 one() 和 try() 的条件 count
+# Lab 18：条件资源与可选值输出
 
 ## 任务
 
-1. 禁用时保持资源 count 为零，启用时保持为一。
-2. 让 `selected_name` 使用 `one()` 安全读取零个或一个元素的集合。
-3. 让 `selected_owner` 使用 `try()` 安全处理可能无效的索引。
-4. 不存在时保留 `null`，启用时返回精确的配置值。
+`create_marker` 决定是否创建一个 marker：关闭时不创建资源，开启时只创建一个。`marker_name` 和 `owner` 是这个 marker 的配置值。
 
+输出 `marker_count`、`selected_name` 和 `selected_owner`。marker 不存在时，后两个输出必须是 `null`；存在时，必须返回该 marker 的真实名称和 owner。
 
+在可编辑配置中分别使用 `one()` 和 `try()` 处理这个“零个或一个资源”的场景：前者读取可选集合，后者安全处理可能不存在的索引。
 
 ## 约束
 
-- 在可编辑配置中同时使用 `one()` 和 `try()`。
-- 不要使用哨兵字符串表示不存在。
-- 不要添加 provider 或外部依赖。
-- 拒绝空的标记名称。
-
-
-
-## 可编辑文件
-
-- `starter/main.tf`
+- 不用哨兵字符串表示“不存在”，应返回 `null`。
+- 不添加 provider 或外部依赖。
+- `marker_name` 不能是空字符串或全空格。
+- 只能编辑 `starter/main.tf`。

@@ -30,9 +30,9 @@ output "marker_count" {
 }
 
 output "selected_name" {
-  value = terraform_data.marker[0].input.name
+  value = one(terraform_data.marker[*].input.name)
 }
 
 output "selected_owner" {
-  value = terraform_data.marker[0].input.owner
+  value = try(terraform_data.marker[0].input.owner, null)
 }
