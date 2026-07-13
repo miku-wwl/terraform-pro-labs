@@ -1,20 +1,18 @@
-# Lab 12：Remote state 消费者与 backend 分离
+# Lab 12：读取跨栈 State，并拆分 Backend 配置
 
 ## 任务
 
-1. 使用 `var.producer_state_path`，通过 `terraform_remote_state` 读取生产者输出。
-2. 将读取到的网络传递给消费者所有的 `terraform_data` 资源和输出。
-3. backend block 中仅保留共享的静态安全设置；bucket、key 和 region 应保留在环境特定的初始化文件中。
+生产方已经将网络信息发布到自己的 state 中。
+
+在 `starter/main.tf` 中，使用 `var.producer_state_path` 读取生产方的 state。消费者的 `terraform_data` 资源和 `consumed_network` 输出都必须使用读取到的网络信息，不能手工复制。
+
+同时整理 `starter/backend.tf.example`：S3 backend 块只保留所有环境共用的安全设置；`bucket`、`key` 和 `region` 应在初始化时由环境配置文件提供。
 
 
 
 ## 约束
 
-不要复制生产者值、初始化 S3、添加凭据，或让消费者管理生产者资源。保留现有输出名称和消费者资源地址。
-
-
-
-## 可编辑文件
-
-- `starter/main.tf`
-- `starter/backend.tf.example`
+- 不要复制生产方输出，也不要让消费者管理生产方资源。
+- 不要初始化真实 S3 backend 或在代码中添加凭据。
+- 保留现有消费者资源地址和输出名称。
+- 只能编辑 `starter/main.tf` 和 `starter/backend.tf.example`。
