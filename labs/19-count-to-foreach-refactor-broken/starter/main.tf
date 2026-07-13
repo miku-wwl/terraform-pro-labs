@@ -6,6 +6,21 @@ locals {
   }
 }
 
+moved {
+  from = terraform_data.bucket[0]
+  to   = terraform_data.bucket["logs"]
+}
+
+moved {
+  from = terraform_data.bucket[1]
+  to   = terraform_data.bucket["assets"]
+}
+
+moved {
+  from = terraform_data.bucket[2]
+  to   = terraform_data.bucket["archive"]
+}
+
 resource "terraform_data" "bucket" {
   for_each = local.records
 
