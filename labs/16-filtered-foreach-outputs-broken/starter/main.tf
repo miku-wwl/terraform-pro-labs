@@ -18,7 +18,7 @@ variable "services" {
 }
 
 resource "terraform_data" "deployment" {
-  for_each = var.services
+  for_each = { for name, service in var.services : name => service if service.enabled }
 
   input = {
     name = each.key
@@ -27,9 +27,9 @@ resource "terraform_data" "deployment" {
 }
 
 output "deployment_names" {
-  value = [for deployment in terraform_data.deployment : deployment.input.name]
+  value = { for name, deployment in terraform_data.deployment : name => deployment.input.name }
 }
 
 output "deployment_ports" {
-  value = [for deployment in terraform_data.deployment : deployment.input.port]
+  value = { for name, deployment in terraform_data.deployment : name => deployment.input.port }
 }
