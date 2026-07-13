@@ -42,7 +42,3 @@ output "credential_metadata" {
     password_configured = nonsensitive(length(var.db_password) > 0)
   }
 }
-
-output "password_debug" {
-  value = nonsensitive(var.db_password)
-}
