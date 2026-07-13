@@ -1,25 +1,15 @@
-# Lab 29：Terraform Test 的顺序状态
+# Lab 29：Terraform Test 的连续状态
 
 ## 任务
 
-1. 通过 apply 将版本 `v1` 建立为初始状态，并断言精确的服务/版本输出。
-2. 通过 apply 升级到版本 `v2`，断言新的输出，并证明其部署 ID 与初始状态不同。
-3. 再次对 `v2` 执行计划，证明 ID 和输出仍保持升级后的值。
-4. 添加一个计划 run，预期发布版本变量拒绝 `latest`。
-5. 为每个行为断言提供诊断消息。
+在 `starter/tests/release_flow.tftest.hcl` 中补全一次发布流程测试。测试 run 必须按下面的状态顺序执行：
 
+先用 `apply` 部署 `v1`，确认服务和版本输出正确；再用 `apply` 升级到 `v2`，确认输出已更新，且新的 deployment ID 不等于 `v1` 时的 ID；随后对 `v2` 再执行一次 `plan`，确认输出和 ID 都保持为升级后的状态；最后用一个 `plan` 验证 `release_version = "latest"` 会被变量校验拒绝。
 
+共有且仅有四个 run。每个断言都要写清失败原因；比较 deployment ID 时，引用前一个 run 的输出，不要写死 ID。
 
 ## 约束
 
-- 在一个测试文件中保持恰好四个 run 场景。
-- 至少包含两个 apply run 和一个 plan run。
-- 使用跨 run 的部署 ID 引用，不要硬编码生成的 ID。
-- 按初始状态、升级、稳定状态、无效输入的顺序排列场景，使共享测试状态具有清晰明确的生命周期。
-- 不要修改受保护的配置或验证器。
-
-
-
-## 可编辑文件
-
-- `starter/tests/release_flow.tftest.hcl`
+- 至少有两个 `apply` run，并包含 `plan` run。
+- run 的顺序不可调换：`v1` → `v2` → `v2` 稳定 → 无效输入。
+- 只能编辑 `starter/tests/release_flow.tftest.hcl`。
