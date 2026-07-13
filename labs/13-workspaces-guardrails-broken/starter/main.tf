@@ -11,7 +11,7 @@ variable "auto_approve" {
 }
 
 locals {
-  environment = "dev"
+  environment = terraform.workspace
   settings = {
     default = {
       replicas = 1
@@ -44,7 +44,7 @@ resource "terraform_data" "deployment" {
 
   lifecycle {
     precondition {
-      condition     = var.instance_type != ""
+      condition     = local.environment != "prod" || ((var.instance_type == "t3.large" || var.instance_type == "t3.xlarge" || var.instance_type == "t3.2xlarge") && var.auto_approve == false)
       error_message = "Production requires an approved size and must not use auto-approve."
     }
   }
