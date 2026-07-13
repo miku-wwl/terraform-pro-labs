@@ -13,12 +13,30 @@ variable "environment" {
   }
 }
 
-# TODO: Declare and connect the naming, identity, and compute modules.
+module "naming" {
+  source      = "./modules/naming"
+  application = var.application
+  environment = var.environment
+}
+
+module "compute" {
+  source                = "./modules/compute"
+  name_prefix           = module.naming.name_prefix
+  instance_profile_name = module.identity.instance_profile_name
+}
+
+
+module "identity" {
+  source      = "./modules/identity"
+  name_prefix = module.naming.name_prefix
+}
+
+
 
 output "stack" {
   value = {
     name_prefix           = module.naming.name_prefix
-    instance_profile_name = module.naming.name_prefix
+    instance_profile_name = module.identity.instance_profile_name
     instance_reference    = module.compute.instance_reference
   }
 }
