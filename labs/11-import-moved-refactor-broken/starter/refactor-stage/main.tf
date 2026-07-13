@@ -7,8 +7,10 @@ module "record" {
   source = "../modules/record"
 }
 
-# TODO: Preserve the imported object's identity while moving it into the module.
-
+moved {
+  from = random_id.legacy_record
+  to   = module.record.random_id.this
+}
 output "record_id" {
   value = module.record.id
 }

@@ -7,7 +7,10 @@ resource "random_id" "legacy_record" {
   byte_length = 8
 }
 
-# TODO: Adopt the seeded identity at the existing root resource address.
+import {
+  to = random_id.legacy_record
+  id = var.import_id
+}
 
 output "record_id" {
   value = random_id.legacy_record.b64_url
