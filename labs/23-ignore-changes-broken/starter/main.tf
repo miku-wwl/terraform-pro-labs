@@ -25,7 +25,7 @@ resource "local_file" "service" {
   file_permission = var.external_permission
 
   lifecycle {
-    ignore_changes = all
+    ignore_changes = [file_permission]
   }
 }
 
