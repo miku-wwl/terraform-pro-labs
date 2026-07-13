@@ -1,9 +1,7 @@
 terraform {
   backend "s3" {
-    # TODO: Correct the boundary between static and init-time backend settings.
     encrypt      = true
     use_lockfile = true
-    key          = "network/shared.tfstate"
   }
 }
 
